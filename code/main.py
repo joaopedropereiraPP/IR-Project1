@@ -8,11 +8,9 @@ import re
 class Principle:
     def __init__(self) :
         self.tokenizer = Tokenizer()
-        #self.indexer = Indexer(positional_flag=positional_flag)
-        #self.ranker = Ranker(queries_path=queries_path ,mode=rank_mode,docs_limit=docs_limit)
-        #self.file = file
 
-    def initilize(self) :
+
+    def initilize(self, use_size_filter, tokenizer) :
         maxInt = sys.maxsize
 
         csv.field_size_limit(maxInt)
@@ -24,10 +22,12 @@ class Principle:
         with gzip.open(original_file, "rt") as tsv_file:
             reader = csv.DictReader(tsv_file, delimiter="\t")
             tokens = []
+            print(reader)
             for row in reader:
                 identification = row['review_id']
                 text_value = row['review_headline']  + " " + row['review_body'] 
-                tokens += self.tokenizer.tokenize(text_value, identification)
+                print(text_value)
+                tokens += self.tokenizer.tokenize(text_value, identification, use_size_filter, tokenizer)
             
             for token in tokens:
                 print(token)
@@ -35,10 +35,35 @@ class Principle:
         #words = re.sub("[^a-zA-Z]+"," ", reviews[0]['text']).lower().split(" ")
         #print(words)
 
+def usage():
+    print("Usage: python3 main.py \n\t <tokenizer_mode: default/ignore/normal> \n\t <token_length: int>")
+
 
 
 if __name__ == "__main__":    
-        
+    
+
+    if len(sys.argv) > 2:
+        tokenizer = sys.argv[1]
+        tokenizer_length = int(sys.argv[2])
+    else:
+        usage()
+        sys.exit(1)
+
+ 
+    if tokenizer == 'default':
+        tokenizer_length = 3
+        use_size_filter = True
+    elif tokenizer == 'ignore':
+        use_size_filter = False
+    elif tokenizer == 'normal':
+        use_size_filter = True
+    else:
+        usage()
+        sys.exit(1)
+
+
+
     principle = Principle()
 
-    principle.initilize()
+    principle.initilize(use_size_filter, tokenizer_length)

@@ -13,16 +13,17 @@ class Tokenizer:
 
     
     # Function to read any text and add it to the word dictionary of the Tokenizer
-    def tokenize(self,input_string,index):
+    def tokenize(self,input_string,index, use_size_filter, tokenizer_length):
         final_tokens = []
 
         #Separe all words
         tokens = re.sub("[^0-9a-zA-Z]+"," ",input_string).lower().split(" ") # Make some changes here, having into account that this is a biomedical corpus
-      
+       
         #remove stopwords  
-        #Word Z 3 e não conter na lista das stopwords
-        tokens = [token for token in tokens if len(token)>3 and token not in self.stopwords]
-
+        if use_size_filter == True:
+            tokens = [token for token in tokens if len(token)>tokenizer_length and token not in self.stopwords]
+        else:
+            tokens = [token for token in tokens if token not in self.stopwords]
         #Stemmer Words
         tokens = self.stemmer.stemWords(tokens)
       
