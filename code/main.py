@@ -1,4 +1,5 @@
 from tokenizer import Tokenizer
+from indexer import Indexer
 import gzip
 import csv
 import sys
@@ -6,11 +7,13 @@ import re
 #import psutil
 
 class Principle:
-    def __init__(self) :
-        self.tokenizer = Tokenizer()
+    def __init__(self,stopwords_path) :
 
-
-    def initilize(self, use_size_filter, tokenizer) :
+        self.tokenizer = Tokenizer(stopwords_path)
+        self.indexer = Indexer()
+        self.size=0
+        
+    def initilize(self, use_size_filter, tokenizer, stemmer = True) :
         maxInt = sys.maxsize
 
         csv.field_size_limit(maxInt)
@@ -22,30 +25,40 @@ class Principle:
         with gzip.open(original_file, "rt") as tsv_file:
             reader = csv.DictReader(tsv_file, delimiter="\t")
             tokens = []
-            print(reader)
+            #print(list(reader))
+   
+            #Tokenizer
             for row in reader:
                 identification = row['review_id']
-                text_value = row['review_headline']  + " " + row['review_body'] 
-                print(text_value)
-                tokens += self.tokenizer.tokenize(text_value, identification, use_size_filter, tokenizer)
+                text_value = row['product_title']  + " " + row['review_headline']  + " " + row['review_body'] 
+                tokens += self.tokenizer.tokenize(text_value, identification, use_size_filter, tokenizer, stemmer)
+    
             
-            for token in tokens:
-                print(token)
-                #reviews.append({'review_id' : row['review_id'] , 'text':row['review_headline']  + " " + row['review_body'] })
-        #words = re.sub("[^a-zA-Z]+"," ", reviews[0]['text']).lower().split(" ")
-        #print(words)
+            #Indexer
+            self.indexer.index(tokens)
+            print("-------------")
+            print(self.indexer.get_indexed())
+
+
 
 def usage():
-    print("Usage: python3 main.py \n\t <tokenizer_mode: default/ignore/normal> \n\t <token_length: int>")
+    print("Usage: python3 main.py \n\t <tokenizer_mode: default/ignore/normal> \n\t <token_length: int> \n\t <stopwords_list: default / path> \n\t <stemmer_use: yes/no>")
 
+#Usage : python main.py
+#<tokenizer_mode: default/ignore/normal> 
+#<token_length: int>
+#<stopwords_list: default / path>
+#<stemmer_use: yes/no>
 
 
 if __name__ == "__main__":    
     
 
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 4:
         tokenizer = sys.argv[1]
         tokenizer_length = int(sys.argv[2])
+        stopwords_path = str(sys.argv[3])
+        use_stemmer = str(sys.argv[4])
     else:
         usage()
         sys.exit(1)
@@ -62,8 +75,19 @@ if __name__ == "__main__":
         usage()
         sys.exit(1)
 
+    if stopwords_path == 'default':
+        stopwords_path = "../content/stopwords.txt"  
+    elif stopwords_path == 'none':
+        stopwords_path = ''
 
+    if use_stemmer in ["yes" , "y", "1"]:
+        stemmer = True
+    elif use_stemmer in ["no" , "n", "0"]:
+        stemmer = False
+    else :
+        usage()
+        sys.exit()
 
-    principle = Principle()
+    principle = Principle(stopwords_path)
 
-    principle.initilize(use_size_filter, tokenizer_length)
+    principle.initilize(use_size_filter, tokenizer_length, stemmer)
