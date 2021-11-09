@@ -3,8 +3,7 @@ from indexer import Indexer
 import gzip
 import csv
 import sys
-import re
-#import psutil
+
 
 class Principle:
     def __init__(self,stopwords_path) :
@@ -32,12 +31,19 @@ class Principle:
                 identification = row['review_id']
                 text_value = row['product_title']  + " " + row['review_headline']  + " " + row['review_body'] 
                 tokens += self.tokenizer.tokenize(text_value, identification, use_size_filter, tokenizer, stemmer)
+                
     
-            
+            tokens = sorted(tokens)
             #Indexer
             self.indexer.index(tokens)
-            print("-------------")
-            print(self.indexer.get_indexed())
+            #print("------------####################-----------------")
+            for x in self.indexer.get_indexed().keys():
+                print(x)
+                #print(type(self.indexer.get_indexed()[x]['posting_list']))
+                #print("ndocs: "+ str(self.indexer.get_indexed()[x]['ndocs']))
+                #print("npositions "+str(self.indexer.get_indexed()[x]['npositions']))
+            print("*************************************************")
+            #print(self.indexer.get_indexed())
 
 
 
