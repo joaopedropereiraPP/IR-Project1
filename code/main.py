@@ -12,7 +12,18 @@ class Principle:
         self.indexer = Indexer()
         self.size=0
         
-    def initilize(self, use_size_filter, tokenizer, stemmer = True) :
+    
+    def gen_chunks(self, reader, chunksize):
+        """ SOME HELP: https://stackoverflow.com/questions/4956984/how-do-you-split-reading-a-large-csv-file-into-evenly-sized-chunks-in-python """
+        chunk = []
+        for i, line in enumerate(reader):
+            if (i % chunksize == 0 and i > 0):
+                yield chunk
+                del chunk[:]  # or: chunk = []
+            chunk.append(line)
+        yield chunk
+
+    def initilize(self, use_size_filter, tokenizer, stemmer = True, chunksize = 2) :
         maxInt = sys.maxsize
 
         csv.field_size_limit(maxInt)
@@ -23,27 +34,37 @@ class Principle:
         
         with gzip.open(original_file, "rt") as tsv_file:
             reader = csv.DictReader(tsv_file, delimiter="\t")
-            tokens = []
-            #print(list(reader))
-   
-            #Tokenizer
-            for row in reader:
-                identification = row['review_id']
-                text_value = row['product_title']  + " " + row['review_headline']  + " " + row['review_body'] 
-                tokens += self.tokenizer.tokenize(text_value, identification, use_size_filter, tokenizer, stemmer)
-                
+            
+            
+            for chunk in self.gen_chunks(reader, chunksize):
+                print(" \tNEW CHUNK")
+                tokens = []
+
+                #Tokenizer for every chunks
+                for row in chunk:
+                    
+                    identification = row['review_id']
+                    text_value = row['product_title']  + " " + row['review_headline']  + " " + row['review_body'] 
+                    print(text_value)
+                    tokens += self.tokenizer.tokenize(text_value, identification, use_size_filter, tokenizer, stemmer)
+                """
+                1º Realizar index para o bloco de tokens do chunk (pedaço)
+                2º Criar bloco (ficheiro) e escrever ( term: postings )
+                    Ou seja, vai ser criado
+                """
+
     
-            tokens = sorted(tokens)
+            #tokens = sorted(tokens)
             #Indexer
             self.indexer.index(tokens)
             #print("------------####################-----------------")
             for x in self.indexer.get_indexed().keys():
-                print(x)
-                #print(type(self.indexer.get_indexed()[x]['posting_list']))
-                #print("ndocs: "+ str(self.indexer.get_indexed()[x]['ndocs']))
-                #print("npositions "+str(self.indexer.get_indexed()[x]['npositions']))
+                #print(x)
+                """print(type(self.indexer.get_indexed()[x]['posting_list']))
+                print("documents_frequency: "+ str(self.indexer.get_indexed()[x]['documents_frequency']))
+                """
             print("*************************************************")
-            #print(self.indexer.get_indexed())
+
 
 
 
