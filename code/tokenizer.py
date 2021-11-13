@@ -1,10 +1,10 @@
 import re
-import Stemmer
+import snowballstemmer
 
 class Tokenizer:
     def __init__(self, stopwords_path ):
         #stemmer
-        self.stemmer = Stemmer.Stemmer('english')
+        self.stemmer = snowballstemmer.stemmer('english')
 
         #initilize stopwords
         if stopwords_path != '':
