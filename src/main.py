@@ -29,8 +29,8 @@ class Principle:
         csv.field_size_limit(maxInt)
         reviews=[]
 
-        #original_file = "/home/pedro/Desktop/RI/Assignment_01/content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz"
-        original_file = "/home/pedro/Desktop/RI/Assignment_01/content/data.tsv.gz"
+        #original_file = "content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz"
+        original_file = "content/data.tsv.gz"
         
         with gzip.open(original_file, "rt") as tsv_file:
             reader = csv.DictReader(tsv_file, delimiter="\t")
@@ -69,7 +69,7 @@ class Principle:
 
 
 def usage():
-    print("Usage: python3 main.py \n\t <tokenizer_mode: default/ignore/normal> \n\t <token_length: int> \n\t <stopwords_list: default / path> \n\t <stemmer_use: yes/no>")
+    print("Usage: python3 src/main.py \n\t <tokenizer_mode: default/ignore/normal> \n\t <token_length: int> \n\t <stopwords_list: default / path> \n\t <stemmer_use: yes/no>")
 
 #Usage : python main.py
 #<tokenizer_mode: default/ignore/normal> 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if stopwords_path == 'default':
-        stopwords_path = "../content/stopwords.txt"  
+        stopwords_path = "content/stopwords.txt"  
     elif stopwords_path == 'none':
         stopwords_path = ''
 
