@@ -1,6 +1,3 @@
-import re
-import sys
-
 class Indexer:
     def __init__(self,initial_structure={}):
         self.indexed_words = initial_structure

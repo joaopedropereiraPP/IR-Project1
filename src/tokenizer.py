@@ -1,10 +1,10 @@
-import re
-import snowballstemmer
+from re import sub
+from snowballstemmer import stemmer
 
 class Tokenizer:
     def __init__(self, stopwords_path ):
         #stemmer
-        self.stemmer = snowballstemmer.stemmer('english')
+        self.stemmer = stemmer('english')
 
         #initilize stopwords
         if stopwords_path != '':
@@ -17,8 +17,8 @@ class Tokenizer:
         final_tokens = []
 
         #Separe all words
-        tokens = re.sub("\-+","",input_string)
-        tokens = re.sub("[^0-9a-zA-Z]+"," ",input_string).lower().split(" ") 
+        tokens = sub("\-+","",input_string)
+        tokens = sub("[^0-9a-zA-Z]+"," ",input_string).lower().split(" ") 
 
         
         #remove stopwords  

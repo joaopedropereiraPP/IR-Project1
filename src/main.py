@@ -1,8 +1,8 @@
 from tokenizer import Tokenizer
 from indexer import Indexer
-import gzip
-import csv
-import sys
+from gzip import open
+from csv import DictReader, field_size_limit
+from sys import maxsize, argv, exit
 
 
 class Principle:
@@ -24,16 +24,16 @@ class Principle:
         yield chunk
 
     def initilize(self, use_size_filter, tokenizer, stemmer = True, chunksize = 2) :
-        maxInt = sys.maxsize
+        maxInt = maxsize
 
-        csv.field_size_limit(maxInt)
+        field_size_limit(maxInt)
         reviews=[]
 
         #original_file = "content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz"
         original_file = "content/data.tsv.gz"
         
-        with gzip.open(original_file, "rt") as tsv_file:
-            reader = csv.DictReader(tsv_file, delimiter="\t")
+        with open(original_file, "rt") as tsv_file:
+            reader = DictReader(tsv_file, delimiter="\t")
             
             
             for chunk in self.gen_chunks(reader, chunksize):
@@ -81,14 +81,14 @@ def usage():
 if __name__ == "__main__":    
     
 
-    if len(sys.argv) > 4:
-        tokenizer = sys.argv[1]
-        tokenizer_length = int(sys.argv[2])
-        stopwords_path = str(sys.argv[3])
-        use_stemmer = str(sys.argv[4])
+    if len(argv) > 4:
+        tokenizer = argv[1]
+        tokenizer_length = int(argv[2])
+        stopwords_path = str(argv[3])
+        use_stemmer = str(argv[4])
     else:
         usage()
-        sys.exit(1)
+        exit(1)
 
  
     if tokenizer == 'default':
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         use_size_filter = True
     else:
         usage()
-        sys.exit(1)
+        exit(1)
 
     if stopwords_path == 'default':
         stopwords_path = "content/stopwords.txt"  
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         stemmer = False
     else :
         usage()
-        sys.exit()
+        exit()
 
     principle = Principle(stopwords_path)
 
