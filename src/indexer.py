@@ -6,13 +6,13 @@ class Indexer:
     def get_indexed(self):
         return self.indexed_words
 
-    def index(self,tokens):
+    def index(self, doc_id, tokens):
      
         for token in tokens:
 
-            term = token[0]
-            idx = token[1]
-            position = token[2]
+            term = token
+            idx = doc_id
+            position = tokens[token]
 
            
             if term not in self.indexed_words.keys():

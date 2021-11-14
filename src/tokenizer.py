@@ -1,43 +1,60 @@
 from re import sub
 from Stemmer import Stemmer
+from os import path
+from collections import defaultdict
 
 class Tokenizer:
-    def __init__(self, stopwords_path ):
-        #stemmer
-        self.stemmer = Stemmer('english')
-
-        #initilize stopwords
+    stopwords: list
+    stemmer_enabled: bool
+    size_filter: int
+    stemmer: Stemmer
+    
+    # an empty string as a stopwords_path disables stopwords
+    # a size_filter of 0 disables size filter
+    def __init__(self, stopwords_path: str = 'content/stopwords.txt', 
+                 stemmer_enabled: bool = True, size_filter: int = 3):
+        assert path.exists(stopwords_path) or stopwords_path == ''
+        assert size_filter >= 0
+        
         if stopwords_path != '':
-            text = open(stopwords_path,'r')
-            self.stopwords = [word.strip() for word in text.readlines()]
+            stopwords_file = open(stopwords_path,'r')
+            self.stopwords = [word.strip() 
+                              for word in stopwords_file.readlines()]
         else:
             self.stopwords = []
-        
-    def tokenize(self,input_string,index, use_size_filter, tokenizer_length, stemmer = True):
-        final_tokens = []
 
-        #Separe all words
-        tokens = sub("\-+","",input_string)
-        tokens = sub("[^0-9a-zA-Z]+"," ",input_string).lower().split(" ") 
+        if stemmer_enabled:
+            self.stemmer_enabled = stemmer_enabled
+            self.stemmer = Stemmer('english')
+        
+        self.size_filter = size_filter
+        
+    def tokenize(self, input_string: str):
+        # dictionary of stopwords and list of respective positions in the 
+        # document
+        tokens = defaultdict(lambda: [])
 
+        word_list = self.preprocess_input(input_string)
         
-        #remove stopwords  
-        if use_size_filter == True:
-            tokens = [token for token in tokens if len(token)>tokenizer_length and token not in self.stopwords]
-        else:
-            tokens = [token for token in tokens if token not in self.stopwords]
+        # iterate over all words to fill the dictionary according to stopwords,
+        # size filter and use of stemmer. The use of a single iteration for all
+        # this further processing saves performance
+        for i in range(0, len(word_list)):
+            if word_list[i] not in self.stopwords:
+                if len(word_list[i]) > self.size_filter:
+                    if self.stemmer_enabled:
+                        token = self.stemmer.stemWord(word_list[i])
+                    else:
+                        token = word_list[i]
+                    tokens[token].append(i)
         
-        #Stemmer Words
-        if stemmer ==True:
-            tokens = self.stemmer.stemWords(tokens)
-      
+        return tokens
+    
+    # the input string will be made all lowercase and divided into a list of
+    # terms every time a symbol that is not a letter or number appears.
+    # hyphenated words will be joined in a single word
+    def preprocess_input(self, input_string: str):
+        word_list = sub("\-+","",input_string)
+        word_list = sub("[^0-9a-zA-Z]+"," ",input_string).lower().split(" ")
         
-        #Define position
-        tokens = [ (tokens[i],i) for i in range(0,len(tokens)) ]
-        
-        #Create final tokens ('term', 'review_id', 'position')
-        for token in tokens: 
-            final_tokens.append((token[0],index, token[1])) 
-
-
-        return final_tokens
+        return word_list

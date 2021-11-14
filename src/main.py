@@ -46,7 +46,7 @@ class Principle:
                     identification = row['review_id']
                     text_value = row['product_title']  + " " + row['review_headline']  + " " + row['review_body'] 
                     print(text_value)
-                    tokens += self.tokenizer.tokenize(text_value, identification, use_size_filter, tokenizer, stemmer)
+                    tokens += self.tokenizer.tokenize(text_value)
                 """
                 1º Realizar index para o bloco de tokens do chunk (pedaço)
                 2º Criar bloco (ficheiro) e escrever ( term: postings )
@@ -56,7 +56,7 @@ class Principle:
     
             #tokens = sorted(tokens)
             #Indexer
-            self.indexer.index(tokens)
+            self.indexer.index(row['review_id'],tokens)
             #print("------------####################-----------------")
             for x in self.indexer.get_indexed().keys():
                 #print(x)
