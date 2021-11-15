@@ -1,39 +1,17 @@
+from collections import defaultdict
+
 class Indexer:
     def __init__(self,initial_structure={}):
-        self.indexed_words = initial_structure
-        self.size_of_indexed_words = 0
+        self.memory_inverted_index = defaultdict(lambda: 
+                                                 defaultdict(lambda: []))
+        self.memory_document_frequency = defaultdict(int)
     
     def get_indexed(self):
-        return self.indexed_words
+        return self.memory_inverted_index
 
     def index(self, doc_id, tokens):
-     
+        
         for token in tokens:
-
-            term = token
-            idx = doc_id
-            position = tokens[token]
-
-           
-            if term not in self.indexed_words.keys():
-           
-                posting = { idx : { 'weight' : 1 , 'positions' : [position] }}
-                self.indexed_words[term] = { 'posting_list': posting, 'documents_frequency': 1}
-            else:
-           
-                new_doc = self.indexed_words[term]['posting_list']
-              
-                if idx not in new_doc.keys():
-                    new_doc[idx] = { 'weight' : 1 , 'positions' : [position] }
-                    self.indexed_words[term]['documents_frequency'] += 1
-          
-                else:
-          
-                    new_doc[idx]['weight'] += 1
-                    new_doc[idx]['positions'].append(position)
-                   
-                
-                self.indexed_words[term]['posting_list'] = new_doc
-
-        self.size_of_indexed_words = len(self.indexed_words.keys())
-
+            
+            self.memory_inverted_index[token][doc_id] = tokens[token]
+            self.memory_document_frequency[token] += 1

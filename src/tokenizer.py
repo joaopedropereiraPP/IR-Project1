@@ -17,17 +17,17 @@ class Tokenizer:
         assert size_filter >= 0
         
         if stopwords_path != '':
-            stopwords_file = open(stopwords_path,'r')
+            stopwords_file = open(stopwords_path, 'r')
             self.stopwords = [word.strip() 
                               for word in stopwords_file.readlines()]
         else:
             self.stopwords = []
 
+        self.stemmer_enabled = stemmer_enabled
         if stemmer_enabled:
-            self.stemmer_enabled = stemmer_enabled
             self.stemmer = Stemmer('english')
         
-        self.size_filter = size_filter
+        self.size_filter: int = size_filter
         
     def tokenize(self, input_string: str):
         word_list = self.preprocess_input(input_string)
