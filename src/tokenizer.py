@@ -48,7 +48,7 @@ class Tokenizer:
     # Returns a dictionary of stopwords containing a list of respective 
     # positions in the document.
     # It makes a single iteration over all words to apply the stopword filter, 
-    # the size filter and the stemmer, to avoid multiple iteration for each
+    # the size filter and the stemmer, to avoid multiple passes
     def apply_stemmer_stopwords_and_size_filter(self, word_list):
         tokens = defaultdict(lambda: [])
 
