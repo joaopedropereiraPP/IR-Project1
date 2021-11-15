@@ -9,8 +9,8 @@ class Tokenizer:
     size_filter: int
     stemmer: Stemmer
     
-    # an empty string as a stopwords_path disables stopwords
-    # a size_filter of 0 disables size filter
+    # An empty string as a stopwords_path disables stopwords.
+    # A size_filter of 0 disables size filter
     def __init__(self, stopwords_path: str = 'content/stopwords.txt', 
                  stemmer_enabled: bool = True, size_filter: int = 3):
         assert path.exists(stopwords_path) or stopwords_path == ''
@@ -30,15 +30,28 @@ class Tokenizer:
         self.size_filter = size_filter
         
     def tokenize(self, input_string: str):
-        # dictionary of stopwords and list of respective positions in the 
-        # document
-        tokens = defaultdict(lambda: [])
-
         word_list = self.preprocess_input(input_string)
         
-        # iterate over all words to fill the dictionary according to stopwords,
-        # size filter and use of stemmer. The use of a single iteration for all
-        # this further processing saves performance
+        tokens = self.apply_stemmer_stopwords_and_size_filter(word_list)
+        
+        return tokens
+    
+    # The input string will be made all lowercase and divided into a list of
+    # terms every time a symbol that is not a letter or number appears.
+    # Hyphenated words will be joined in a single word
+    def preprocess_input(self, input_string: str):
+        word_list = sub("\-+","",input_string)
+        word_list = sub("[^0-9a-zA-Z]+"," ",input_string).lower().split(" ")
+        
+        return word_list
+    
+    # Returns a dictionary of stopwords containing a list of respective 
+    # positions in the document.
+    # It makes a single iteration over all words to apply the stopword filter, 
+    # the size filter and the stemmer, to avoid multiple iteration for each
+    def apply_stemmer_stopwords_and_size_filter(self, word_list):
+        tokens = defaultdict(lambda: [])
+
         for i in range(0, len(word_list)):
             if word_list[i] not in self.stopwords:
                 if len(word_list[i]) > self.size_filter:
@@ -49,12 +62,3 @@ class Tokenizer:
                     tokens[token].append(i)
         
         return tokens
-    
-    # the input string will be made all lowercase and divided into a list of
-    # terms every time a symbol that is not a letter or number appears.
-    # hyphenated words will be joined in a single word
-    def preprocess_input(self, input_string: str):
-        word_list = sub("\-+","",input_string)
-        word_list = sub("[^0-9a-zA-Z]+"," ",input_string).lower().split(" ")
-        
-        return word_list
