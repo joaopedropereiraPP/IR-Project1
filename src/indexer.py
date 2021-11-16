@@ -1,6 +1,8 @@
 from collections import defaultdict
 
 class Indexer:
+    
+    
     def __init__(self,initial_structure={}):
         self.memory_inverted_index = defaultdict(lambda: 
                                                  defaultdict(lambda: []))
