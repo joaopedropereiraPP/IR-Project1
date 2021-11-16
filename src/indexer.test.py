@@ -7,9 +7,9 @@ indexer = Indexer(tokenizer)
 indexer.index_data_source('content/data.tsv.gz')
 index = indexer.get_memory_inverted_index()
 
-# import csv
-# csvfile = open('here.tsv', mode='wt', encoding='utf8', newline='')
-# writer = csv.writer(csvfile, delimiter='\t')
-# writer.writerow('a')
-# writer.writerow('a')
-# csvfile.close()
+import csv
+with open('index/test.tsv', mode='wt', encoding='utf8', newline='') as csvfile:
+    writer = csv.writer(csvfile, delimiter='\t')
+    writer.writerow('a')
+    writer.writerow('a')
+    csvfile.close()
