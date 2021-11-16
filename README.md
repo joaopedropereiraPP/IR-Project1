@@ -9,7 +9,7 @@ Create a document indexer using the SPIMI approach. Implement two alternative in
 ## Authors
 
 João Pedro Pereira - 106346 [GitHub](https://github.com/joaopedropereiraPP)  
-Ivo Félix - [GitHub](https://github.com/IvoFelix) 
+Ivo Félix - 109641 [GitHub](https://github.com/IvoFelix) 
 
 
 
