@@ -41,8 +41,8 @@ class Tokenizer:
     # terms every time a symbol that is not a letter or number appears.
     # Hyphenated words will be joined in a single word
     def preprocess_input(self, input_string: str) -> List[str]:
-        word_list = sub("\-+","",input_string)
-        word_list = sub("[^0-9a-zA-Z]+"," ",input_string).lower().split(" ")
+        word_list = sub("\-+","", input_string)
+        word_list = sub("[^0-9a-zA-Z]+"," ", word_list).lower().split(" ")
         
         return word_list
     
