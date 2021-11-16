@@ -7,6 +7,9 @@ indexer = Indexer(tokenizer)
 indexer.index_data_source('content/data.tsv.gz')
 index = indexer.get_memory_inverted_index()
 
-# input_str = 'The quick brown fox things is played out'
-# tokens = tokenizer.tokenize(input_str)
-# indexer.index('ID2', tokens)
+# import csv
+# csvfile = open('here.tsv', mode='wt', encoding='utf8', newline='')
+# writer = csv.writer(csvfile, delimiter='\t')
+# writer.writerow('a')
+# writer.writerow('a')
+# csvfile.close()
