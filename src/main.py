@@ -82,7 +82,7 @@ class Main:
                     print("documents_frequency: "+ str(self.indexer.get_indexed()[x]['documents_frequency']))
                     """
                 print("*************************************************")
-
+ 
     def parse_args(self):
         
         parser = ArgumentParser()
