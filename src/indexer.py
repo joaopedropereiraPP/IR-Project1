@@ -1,7 +1,8 @@
 from tokenizer import Tokenizer
 from collections import defaultdict
 from typing import List, Dict
-from gzip import open
+# from gzip import open
+import gzip
 from csv import reader, writer
 from os import path
 
@@ -22,12 +23,12 @@ class Indexer:
                                          'Vocabulary size',
                                          'Number of temporary index segments',
                                          'Time to start up index searcher (s)'
-                                         ], 0)
+                                         ])
     
     def get_memory_inverted_index(self) -> Dict[str, Dict[str, List[int]]]:
         return self.memory_inverted_index
 
-    def index_doc(self, doc_id, tokens):
+    def index_doc(self, doc_id, tokens) -> None:
         for token in tokens:
             
             self.memory_inverted_index[token][doc_id] = tokens[token]
@@ -36,9 +37,11 @@ class Indexer:
     # Temporary index blocks and the final index will be kept in the 'index'
     # subfolder
     def index_data_source(self, data_source_path: str) -> None:
-        with open(data_source_path, 
+        self.initialize_statistics()        
+        
+        with gzip.open(data_source_path, 
                   mode='rt', encoding='utf8', newline='') as data_file:
-            data_file_name = path.splitext(path.basename(data_source_path))[0]
+            data_file_name = path.basename(data_source_path).split('.')[0]
             data_reader = reader(data_file, delimiter='\t')
             
             # skip the first line (the header)
@@ -50,29 +53,22 @@ class Indexer:
                 if len(self.memory_inverted_index.keys()) > 3:
                     # TODO: between runs of the same Indexer instance the 
                     # statistics will accumulate, this will need to be fixed
-                    self.statistics['Number of temporary index segments'] += 1
-                    
-                    block_file_name = '{}.block{:000}.tsv'.format(
-                        data_file_name, 
-                        self.statistics['Number of temporary index segments'])
-                    block_file_path = path.join('index', block_file_name)
-                    
-                    with open(block_file_path, mode='wt', encoding='utf8', 
-                              newline='') as block_file:
-                        block_writer = writer(block_file, delimiter='\t')
-                        block_writer.writerow('a')
-                    # for block_term in self.memory_inverted_index:
-                    #     # text_row = ':'.join(block_term.keys())
-                    #     # block_writer.writerow(':'.join(block_term))
-                    #     block_writer.writerow(['a','b'])
-                
-                parsed_doc = self.parse_doc(doc)
+                    self.dump_index_to_disk(data_file_name)
+
+                parsed_doc = self.parse_doc_from_data_source(doc)
                 tokens = self.tokenizer.tokenize(parsed_doc[1])
                 self.index_doc(parsed_doc[0], tokens)
+            
+            # If the memory wasn't exceeded and the index isn't empty, make a
+            # final dump to disk
+            if len(self.memory_inverted_index.keys()) > 0:
+                self.dump_index_to_disk(data_file_name)
+            
+            self.merge_index_blocks(data_file_name)
         
     # fields other than reviewid are concatenated separated by spaces, as the
     # body of the document
-    def parse_doc(self, doc: List[str]) -> List[str]:
+    def parse_doc_from_data_source(self, doc: List[str]) -> List[str]:
         doc_id = doc[2]
         doc_body = '{} {} {}'.format(doc[5], doc[12], doc[13])
         
@@ -81,5 +77,37 @@ class Indexer:
     def get_statistics(self) -> Dict[str, int]:
         return self.statistics
     
-    def dump_index_to_disk(self) -> None:
+    def initialize_statistics(self) -> None:
+        for key in self.statistics:
+            self.statistics[key] = 0
+    
+    def dump_index_to_disk(self, data_file_name: str) -> None:
+        self.statistics['Number of temporary index segments'] += 1
+        
+        block_file_name = '{}_block{:000}.tsv'.format(
+            data_file_name, 
+            self.statistics['Number of temporary index segments'])
+        block_file_path = path.join('index', block_file_name)
+            
+        with open(block_file_path, mode='wt', encoding='utf8', 
+                  newline='') as block_file:
+            block_writer = writer(block_file, delimiter='\t')
+            
+            ordered_terms = list(self.memory_inverted_index.keys())
+            list.sort(ordered_terms)
+            for block_term in ordered_terms:
+                block_writer.writerow(self.parse_term_from_memory(block_term))
+        
+        self.memory_inverted_index.clear()
+    
+    def parse_term_from_memory(self, block_term):
+        posting_list = [block_term]
+        
+        for posting in self.memory_inverted_index[block_term]:
+            positions_str = ','.join([str(i) for i in self.memory_inverted_index[block_term][posting]])
+            posting_list.append(posting + ':' + positions_str)
+        
+        return posting_list
+        
+    def merge_index_blocks(self, data_file_name: str) -> None:
         pass
