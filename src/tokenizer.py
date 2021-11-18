@@ -43,8 +43,11 @@ class Tokenizer:
     # The input string will be made all lowercase and divided into a list of
     # terms every time a symbol that is not a letter or number appears.
     # Hyphenated words will be joined in a single word
+    # HTML line break tags will be removed
+    #TODO: improve tokenizer with more combinations
     def preprocess_input(self, input_string: str) -> List[str]:
         word_list = sub("\-+","", input_string)
+        word_list = sub("<br />"," ", word_list)
         word_list = sub("[^0-9a-zA-Z]+"," ", word_list).lower().split(" ")
         
         return word_list
