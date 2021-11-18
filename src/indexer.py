@@ -1,6 +1,6 @@
 from tokenizer import Tokenizer
 from collections import defaultdict
-from typing import List, Dict
+from typing import DefaultDict, List, Dict
 # from gzip import open
 import gzip
 from csv import reader, writer
@@ -11,6 +11,8 @@ class Indexer:
     memory_document_frequency: Dict[str, int]
     tokenizer: Tokenizer
     statistics: Dict[str, int]
+    doc_keys: Dict[int, str]
+    nr_indexed_docs:int
     
     def __init__(self, tokenizer: Tokenizer) -> None:
         self.tokenizer = tokenizer
@@ -24,6 +26,8 @@ class Indexer:
                                          'Number of temporary index segments',
                                          'Time to start up index searcher (s)'
                                          ])
+        self.doc_keys = {}
+        self.nr_indexed_docs = 0
     
     def get_memory_inverted_index(self) -> Dict[str, Dict[str, List[int]]]:
         return self.memory_inverted_index
@@ -72,7 +76,11 @@ class Indexer:
         doc_id = doc[2]
         doc_body = '{} {} {}'.format(doc[5], doc[12], doc[13])
         
-        return [doc_id, doc_body]
+        self.doc_keys += 1
+        key = self.doc_keys
+        self.doc_keys[key] = doc_id
+ 
+        return [self.doc_keys[key], doc_body]
 
     def get_statistics(self) -> Dict[str, int]:
         return self.statistics
