@@ -69,6 +69,8 @@ class Indexer:
                 self.dump_index_to_disk(data_file_name)
             
             self.merge_index_blocks(data_file_name)
+
+        print(str(self.doc_keys))
         
     # fields other than reviewid are concatenated separated by spaces, as the
     # body of the document
@@ -76,11 +78,11 @@ class Indexer:
         doc_id = doc[2]
         doc_body = '{} {} {}'.format(doc[5], doc[12], doc[13])
         
-        self.doc_keys += 1
-        key = self.doc_keys
+        self.nr_indexed_docs += 1
+        key = self.nr_indexed_docs
         self.doc_keys[key] = doc_id
  
-        return [self.doc_keys[key], doc_body]
+        return [str(key), doc_body]
 
     def get_statistics(self) -> Dict[str, int]:
         return self.statistics
