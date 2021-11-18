@@ -64,7 +64,11 @@ class Main:
         parser.add_argument("--no_word_size", help="Set not to use minimum words size",
                             action="store_false")
         #NOT USE STEMMER APPROACH
-        parser.add_argument("--nostemmer", help="Set not to use Stemmer",
+        parser.add_argument("--no_stemmer", help="Set not to use Stemmer",
+                            action="store_false")
+
+        #NOT USE POSITIONS
+        parser.add_argument("--use_positions", help="Set not to use Stemmer",
                             action="store_false")
 
         return parser
