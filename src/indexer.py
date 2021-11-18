@@ -128,4 +128,4 @@ class Indexer:
 
         with open(index_folder_path, mode = 'wt', encoding = 'utf8') as master_file:
             for key in self.doc_keys:
-                master_file.write("%s : %s\n"%(key,self.doc_keys[key]))
+                master_file.write("%s:%s\n"%(key,self.doc_keys[key]))

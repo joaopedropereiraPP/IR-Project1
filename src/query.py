@@ -23,12 +23,10 @@ class Query:
         with open(self.index_folder_path,'r')as file:
             filecontent= csv.reader(file)
             for row in filecontent:
-                values = row[0].replace(" ", "")
-                x =values.split(":")
-                print(x[0])
-                self.master_index[x[0]]=x[1]
-
-        
+                
+                values =row[0].split(":")
+                self.master_index[values[0]]=values[1]
+        print(self.master_index)
 
     def process_query(self, term:str):
         pass
