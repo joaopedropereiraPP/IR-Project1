@@ -1,4 +1,5 @@
 import sys
+from typing import List
 from tokenizer import Tokenizer
 from indexer import Indexer
 from gzip import open
@@ -9,6 +10,15 @@ from os import path
 
 
 class Main:
+    data_path:List[str]
+    stopwords_path:str
+    minimum_word_size:int
+    stemmer_enabled:bool
+    use_positions:bool
+    parser:ArgumentParser
+    tokenizer:Tokenizer     
+    indexer:Indexer
+
     def __init__(self) :
 
 
@@ -17,32 +27,21 @@ class Main:
                             'content/amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz', 
                             'content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz', 
                             'content/amazon_reviews_us_Music_v1_00.tsv.gz']
-        self.use_stopwords = True
         self.stopwords_path = 'content/stopwords.txt'
         self.minimum_word_size = 3
-        self.use_word_size = True
         self.stemmer_enabled = True
-
+        self.use_positions = False
         self.parser = ArgumentParser()
-        
-        self.tokenizer = Tokenizer(stopwords_path = self.stopwords_path, stemmer_enabled = self.stemmer_enabled, size_filter=self.minimum_word_size)
+        self.tokenizer = Tokenizer(stopwords_path = self.stopwords_path, 
+                                stemmer_enabled = self.stemmer_enabled, 
+                                size_filter=self.minimum_word_size, 
+                                use_positions=self.use_positions)
         
         self.indexer = Indexer(tokenizer = self.tokenizer)
     
 
-    def process(self, chunksize = 2) :
-        """All the process start here"""
-        maxInt = maxsize
 
-        field_size_limit(maxInt)
-        reviews=[]
-
-        #original_file = "content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz"
-        original_file = "../content/data.tsv.gz"
         
-        print(self.data_path)
-        for file in self.data_path:
-            self.indexer.index_data_source(data_source_path = file)
          
  
     def parse_args(self):
@@ -66,7 +65,6 @@ class Main:
         #NOT USE STEMMER APPROACH
         parser.add_argument("--no_stemmer", help="Set not to use Stemmer",
                             action="store_false")
-
         #NOT USE POSITIONS
         parser.add_argument("--use_positions", help="Set not to use Stemmer",
                             action="store_false")
@@ -82,13 +80,12 @@ class Main:
                 print(parser.parse_args(['-h']))
                 sys.exit()
         
-        #SE NÃO QUER LISTA DE STOPWORS, MAS DEFINE UMA LISTA
+        #SE NÃO QUER LISTA DE STOPWORDS, MAS DEFINE UMA LISTA
         if (not args.nostopwords) and (args.stopwords != None):
             print(parser.parse_args(['-h']))
             sys.exit()
 
         if not args.nostopwords:
-            self.use_stopwords = False
             self.stopwords_path = ''
 
         if args.stopwords:
@@ -103,11 +100,13 @@ class Main:
             self.minimum_word_size = args.word_size
  
         if not args.no_word_size:
-            self.use_word_size = False
             self.minimum_word_size = 0
         
         if not args.nostemmer:
             self.stemmer_enabled = False
+
+        if not args.use_positions:
+            self.use_positions = True 
 
     def main(self):
 
@@ -115,22 +114,19 @@ class Main:
         parser = self.parse_args()
         args = parser.parse_args()
         self.check_arguments(parser, args)
-        
-        
-        print("data_path: " + str(self.data_path))
-        print("use_stopwords: " + str(self.use_stopwords))
-        print("stopwords_path: " + str(self.stopwords_path))
-        print("minimum_word_size: " + str(self.minimum_word_size))
-        print("use_word_size: " + str(self.use_word_size))
-        print("stemmer_enabled: " + str(self.stemmer_enabled))
-        
 
-        self.process()
+        self.indexer.index_data_source(data_source_path = self.data_path[0])
 
+        word_to_search = input()
+        while word_to_search != '0':
 
+            self.query.process_query(word_to_search)
+
+            word_to_search = input()
 
 
 if __name__ == "__main__":    
+    
     Main().main()
 
     
