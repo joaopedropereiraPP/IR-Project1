@@ -47,8 +47,8 @@ class Tokenizer:
         
         return word_list
     
-    # Returns a dictionary of stopwords containing a list of respective 
-    # positions in the document.
+    # Returns a dictionary of tokens containing a list of respective positions
+    # in the document.
     # It makes a single iteration over all words to apply the stopword filter, 
     # the size filter and the stemmer, to avoid multiple passes
     def stem_and_filter_words(

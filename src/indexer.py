@@ -54,7 +54,7 @@ class Indexer:
             for doc in data_reader:
                 
                 # condition to dump index block to disk
-                if len(self.memory_inverted_index.keys()) > 515:
+                if len(self.memory_inverted_index.keys()) > 3:
                     # TODO: between runs of the same Indexer instance the 
                     # statistics will accumulate, this will need to be fixed
                     self.dump_index_to_disk(data_file_name)
