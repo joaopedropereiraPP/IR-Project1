@@ -7,8 +7,8 @@ from csv import reader, writer
 from os import path
 
 class Indexer:
-    memory_inverted_index: Dict[str, Dict[str, List[int]]]
-    memory_document_frequency: Dict[str, int]
+    memory_index: DefaultDict[str, DefaultDict[str, List[int]]]
+    memory_document_frequency: DefaultDict[str, int]
     tokenizer: Tokenizer
     statistics: Dict[str, int]
     doc_keys: Dict[int, str]
@@ -16,7 +16,7 @@ class Indexer:
     
     def __init__(self, tokenizer: Tokenizer) -> None:
         self.tokenizer = tokenizer
-        self.memory_inverted_index = defaultdict(lambda: 
+        self.memory_index = defaultdict(lambda: 
                                                  defaultdict(lambda: []))
         self.memory_document_frequency = defaultdict(int)
         self.statistics = dict.fromkeys([
@@ -29,13 +29,14 @@ class Indexer:
         self.doc_keys = {}
         self.nr_indexed_docs = 0
     
-    def get_memory_inverted_index(self) -> Dict[str, Dict[str, List[int]]]:
-        return self.memory_inverted_index
+    def get_memory_index(self) -> Dict[str, Dict[str, List[int]]]:
+        return self.memory_index
 
-    def index_doc(self, doc_id, tokens) -> None:
+    def index_doc(self, doc_id, doc_body) -> None:
+        tokens = self.tokenizer.tokenize(doc_body)
+        
         for token in tokens:
-            
-            self.memory_inverted_index[token][doc_id] = tokens[token]
+            self.memory_index[token][doc_id] = tokens[token]
             self.memory_document_frequency[token] += 1
 
     # Temporary index blocks and the final index will be kept in the 'index'
@@ -54,23 +55,20 @@ class Indexer:
             for doc in data_reader:
                 
                 # condition to dump index block to disk
-                if len(self.memory_inverted_index.keys()) > 3:
+                if len(self.memory_index.keys()) > 3:
                     # TODO: between runs of the same Indexer instance the 
                     # statistics will accumulate, this will need to be fixed
                     self.dump_index_to_disk(data_file_name)
 
                 parsed_doc = self.parse_doc_from_data_source(doc)
-                tokens = self.tokenizer.tokenize(parsed_doc[1])
-                self.index_doc(parsed_doc[0], tokens)
+                self.index_doc(parsed_doc[0], parsed_doc[1])
             
             # If the memory wasn't exceeded and the index isn't empty, make a
             # final dump to disk
-            if len(self.memory_inverted_index.keys()) > 0:
+            if len(self.memory_index.keys()) > 0:
                 self.dump_index_to_disk(data_file_name)
             
             self.merge_index_blocks(data_file_name)
-
-        print(str(self.doc_keys))
         
     # fields other than reviewid are concatenated separated by spaces, as the
     # body of the document
@@ -103,18 +101,18 @@ class Indexer:
                   newline='') as block_file:
             block_writer = writer(block_file, delimiter='\t')
             
-            ordered_terms = list(self.memory_inverted_index.keys())
+            ordered_terms = list(self.memory_index.keys())
             list.sort(ordered_terms)
             for block_term in ordered_terms:
                 block_writer.writerow(self.parse_term_from_memory(block_term))
         
-        self.memory_inverted_index.clear()
+        # self.memory_index.clear()
     
     def parse_term_from_memory(self, block_term):
         posting_list = [block_term]
         
-        for posting in self.memory_inverted_index[block_term]:
-            positions_str = ','.join([str(i) for i in self.memory_inverted_index[block_term][posting]])
+        for posting in self.memory_index[block_term]:
+            positions_str = ','.join([str(i) for i in self.memory_index[block_term][posting]])
             posting_list.append(posting + ':' + positions_str)
         
         return posting_list

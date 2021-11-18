@@ -1,14 +1,14 @@
 from re import sub
 from Stemmer import Stemmer
-from os import path
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Set
 
 class Tokenizer:
-    stopwords: List[str]
+    stopwords: Set[str]
     stemmer_enabled: bool
     size_filter: int
     stemmer: Stemmer
+    use_positions: bool
     
     # An empty string as a stopwords_path disables stopwords.
     # A size_filter of 0 disables size filter
@@ -17,11 +17,10 @@ class Tokenizer:
                  use_positions: bool = False) -> None:
         
         if stopwords_path != '':
-            stopwords_file = open(stopwords_path, 'r')
-            self.stopwords = [word.strip() 
-                              for word in stopwords_file.readlines()]
+            with open(stopwords_path, 'r') as stopwords_file:
+                self.stopwords = set(stopwords_file.read().split('\n'))
         else:
-            self.stopwords = []
+            self.stopwords = set()
 
         self.stemmer_enabled = stemmer_enabled
         if stemmer_enabled:
@@ -31,10 +30,13 @@ class Tokenizer:
         
         self.use_positions = use_positions
         
-    def tokenize(self, input_string: str) -> List[str]:
+    def tokenize(self, input_string: str):
         word_list = self.preprocess_input(input_string)
         
-        tokens = self.stem_and_filter_words(word_list)
+        if self.use_positions:
+            tokens = self.stem_and_filter_words_with_positions(word_list)
+        else:
+            tokens = self.stem_and_filter_words(word_list)
         
         return tokens
     
@@ -47,13 +49,11 @@ class Tokenizer:
         
         return word_list
     
-    # Returns a dictionary of tokens containing a list of respective positions
-    # in the document.
+    # Returns a set of tokens.
     # It makes a single iteration over all words to apply the stopword filter, 
     # the size filter and the stemmer, to avoid multiple passes
-    def stem_and_filter_words(
-                      self, word_list: List[str]) -> List[str]:
-        tokens = []
+    def stem_and_filter_words(self, word_list: List[str]) -> Set[str]:
+        tokens = set()
 
         for i in range(0, len(word_list)):
             if word_list[i] not in self.stopwords:
@@ -62,16 +62,16 @@ class Tokenizer:
                         token = self.stemmer.stemWord(word_list[i])
                     else:
                         token = word_list[i]
-                    tokens.append(token)
+                    tokens.add(token)
         
         return tokens
     
-    # Returns a dictionary of stopwords containing a list of respective 
+    # Returns a dictionary of tokens associated with lists of respective 
     # positions in the document.
     # It makes a single iteration over all words to apply the stopword filter, 
     # the size filter and the stemmer, to avoid multiple passes
-    def stem_and_filter_words_with_positions(
-                      self, word_list: List[str]) -> Dict[str, List[int]]:
+    def stem_and_filter_words_with_positions(self, 
+                                 word_list: List[str]) -> Dict[str, List[int]]:
         tokens = defaultdict(lambda: [])
 
         for i in range(0, len(word_list)):
