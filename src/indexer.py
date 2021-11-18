@@ -5,14 +5,17 @@ from typing import DefaultDict, List, Dict, Tuple
 import gzip
 from csv import reader, writer
 from os import path, makedirs
+from contextlib import ExitStack
+from itertools import islice
 
 class Indexer:
+    tokenizer: Tokenizer
+    nr_postings_per_temp_block: int
+    
     memory_index: DefaultDict[str, List[int]]
     memory_index_positional: DefaultDict[str, DefaultDict[str, List[int]]]
     memory_document_frequency: DefaultDict[str, int]
     doc_keys: Dict[int, str]
-    
-    tokenizer: Tokenizer
     
     nr_postings: int
     nr_indexed_docs: int
@@ -22,8 +25,10 @@ class Indexer:
     nr_temp_index_segments: int
     index_searcher_start_time: int
     
-    def __init__(self, tokenizer: Tokenizer) -> None:
+    def __init__(self, tokenizer: Tokenizer,
+                 nr_postings_per_temp_block: int = 30) -> None:
         self.tokenizer = tokenizer
+        self.nr_postings_per_temp_block = nr_postings_per_temp_block
         
         if self.tokenizer.use_positions:
             self.memory_index_positional = defaultdict(lambda: 
@@ -76,7 +81,7 @@ class Indexer:
             for doc in data_reader:
                 
                 # condition to dump index block to disk
-                if self.nr_postings > 200:
+                if self.nr_postings > self.nr_postings_per_temp_block:
                     
                     self.nr_temp_index_segments += 1
                     block_file_path = '{}/TempBlock{}.tsv'.format(
@@ -97,7 +102,7 @@ class Indexer:
                     self.nr_temp_index_segments)
                 self.dump_index_to_disk(block_file_path)
             
-            self.merge_index_blocks(index_folder)
+            # self.merge_index_blocks(index_folder)
 
         self.dump_doc_keys(index_folder)
         
@@ -159,7 +164,47 @@ class Indexer:
         return row
         
     def merge_index_blocks(self, index_blocks_folder: str) -> None:
-        pass
+        file_path_list = []
+        temp_merge_dict = defaultdict(dict)
+        last_term_list = []
+        for block_number in range(1, 1 + self.nr_temp_index_segments):
+            file_path_list.append(
+                '{}/TempBlock{}.tsv'.format(index_blocks_folder, block_number))
+        with ExitStack() as stack:
+            block_files = [stack.enter_context(open(file_path)) 
+                           for file_path in file_path_list]
+            file_readers = [reader(block_file, delimiter='\t') 
+                            for block_file in block_files]
+            
+            max_terms_per_block = int((self.nr_postings_per_temp_block 
+                                       / self.nr_temp_index_segments) * 0.7)
+            
+            # TODO: this cycle is a place holder, correct with another
+            # condition based on postings, preferably
+            for i in range(0, 100):
+                
+                last_term_list.clear()
+                
+                for block_nr in range(0, self.nr_temp_index_segments):
+                    
+                    for row in islice(file_readers[block_nr], max_terms_per_block):
+                    # for row in islice(file_readers[block_nr], 10):
+                        
+                        term, value = self.parse_index_file_row(row)
+                        temp_merge_dict[block_nr + 1][term] = value
+                    
+                    last_term_list.append(term)
+                
+                last_term_list.sort()
+                last_term_to_merge = last_term_list[0]
+                
+                for block_nr in range(1, self.nr_temp_index_segments + 1):
+                    block_keys = list(temp_merge_dict[block_nr].keys())
+                    for term in block_keys:
+                        if term <= last_term_to_merge:
+                            self.get_memory_index()[term] = temp_merge_dict[block_nr].pop(term)
+                
+        return temp_merge_dict
 
     # TODO: ordering?
     def dump_doc_keys(self, index_folder_path: str) -> None:
@@ -179,13 +224,19 @@ class Indexer:
             data_reader = reader(data_file, delimiter='\t')
 
             for row in data_reader:
-                term = row[0]
-                posting_str_list = row[1:]
-                if self.tokenizer.use_positions:
-                    for posting_str in posting_str_list:
-                        doc_id, positions_str = posting_str.split(':')
-                        positions_list = list(map(int, 
-                                                  positions_str.split(',')))
-                        self.memory_index_positional[term][doc_id] = positions_list
-                else:
-                    self.memory_index[term] = list(map(int, posting_str_list))
+                term, value = self.parse_index_file_row(row)
+                self.get_memory_index()[term] = value
+
+    def parse_index_file_row(self, row: List[str]):
+        term = row[0]
+        posting_str_list = row[1:]
+        if self.tokenizer.use_positions:
+            value = defaultdict(lambda: [])
+            for posting_str in posting_str_list:
+                doc_id, positions_str = posting_str.split(':')
+                positions_list = list(map(int, 
+                                          positions_str.split(',')))
+                value[doc_id] = positions_list
+        else:
+            value = list(map(int, posting_str_list))
+        return term, value
