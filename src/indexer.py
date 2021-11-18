@@ -82,7 +82,7 @@ class Indexer:
             
             self.merge_index_blocks(data_file_name)
 
-        self.dump_master_index()
+        self.dump_doc_keys()
         
     # fields other than reviewid are concatenated separated by spaces, as the
     # body of the document
@@ -150,7 +150,8 @@ class Indexer:
     def merge_index_blocks(self, data_file_name: str) -> None:
         pass
 
-    def dump_master_index(self, index_folder_path = "index/master_index.tsv"):
-        with open(index_folder_path, mode = 'wt', encoding = 'utf8') as master_file:
+    def dump_doc_keys(self, index_folder_path = "index/doc_keys.tsv"):
+
+        with open(index_folder_path, mode = 'wt', encoding = 'utf8') as doc_keys_file:
             for key in self.doc_keys:
-                master_file.write("%s:%s\n"%(key,self.doc_keys[key]))
+                doc_keys_file.write("%s:%s\n"%(key,self.doc_keys[key]))
