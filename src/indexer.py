@@ -39,10 +39,10 @@ class Indexer:
         self.memory_document_frequency = defaultdict(int)
         self.doc_keys = {}
         
-        self.initialize_statistics()
         # TODO: make an initialization method to reset everything that can't
         # be reused so that the indexer can index multiple times with one 
         # instance
+        self.initialize_statistics()
     
     def get_memory_index(self):
         if self.tokenizer.use_positions:
@@ -135,8 +135,6 @@ class Indexer:
         self.vocabulary_size = 0
         self.nr_temp_index_segments = 0
     
-    # TODO: don't use data_file_name and instead use a folder and a
-    # predetermined name for each index
     def dump_index_to_disk(self, file_path: str) -> None:
         with open(file_path, mode='wt', encoding='utf8', 
                   newline='') as block_file:
@@ -179,9 +177,10 @@ class Indexer:
             max_terms_per_block = int((self.nr_postings_per_temp_block 
                                        / self.nr_temp_index_segments) * 0.7)
             
-            # TODO: this cycle is a place holder, correct with another
-            # condition based on postings, preferably
-            for i in range(0, 100):
+            nr_main_index_blocks = 0
+            nr_postings_current_block = 0
+            nr_merged_postings = 0
+            while(nr_merged_postings < self.nr_postings):
                 
                 last_term_list.clear()
                 
@@ -202,9 +201,19 @@ class Indexer:
                     block_keys = list(temp_merge_dict[block_nr].keys())
                     for term in block_keys:
                         if term <= last_term_to_merge:
-                            self.get_memory_index()[term] = temp_merge_dict[block_nr].pop(term)
+                            self.get_memory_index()[term] += temp_merge_dict[block_nr].pop(term)
+                            nr_postings_for_term = len(self.get_memory_index()[term])
+                            
+                            nr_merged_postings += nr_postings_for_term
+                            nr_postings_current_block += nr_postings_for_term
                 
-        return temp_merge_dict
+                if nr_postings_current_block >= self.nr_postings_per_temp_block:
+                    nr_postings_current_block = 0
+                    nr_main_index_blocks += 1
+                    block_file_path = '{}/PostingIndexBlock{}.tsv'.format(
+                        index_blocks_folder, 
+                        nr_main_index_blocks)
+                    self.dump_index_to_disk(block_file_path)
 
     # TODO: ordering?
     def dump_doc_keys(self, index_folder_path: str) -> None:
