@@ -27,12 +27,24 @@ optional arguments:
 * The data_path option is to introduce a data file, by default it will use the ["content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz"](content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz)
 
 * The nostopwords option is to identify not to use the stopwords list.
-* The stopwords options is to identify a new stopword list, by defaul we use this [stopword list](content/stopwords.txt).
+* The stopwords options is to identify a new stopword list, by default we use this [stopword list](content/stopwords.txt).
 * The word_size option is to set another minimum words size, by defaut the size is 3.
 * The no_word_size option is to identify not to use a word size filter.
 * The no_stemmer option is to identify not to use semmers words.
 * The use_positions option is to identify to use the position list, by default we will not use.
 
+
+## Example to run
+
+By default
+```
+python3 src/main.py
+```
+
+With new data file and without stopwords list
+```
+python3 src/main.py --data_path (path) --nostopwords
+```
 ## Authors
 
 João Pedro Pereira - 106346 [GitHub](https://github.com/joaopedropereiraPP)  
