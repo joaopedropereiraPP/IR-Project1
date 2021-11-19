@@ -105,7 +105,7 @@ class Indexer:
             # self.merge_index_blocks(index_folder)
 
         self.dump_doc_keys(index_folder)
-        
+
     # fields other than reviewid are concatenated separated by spaces, as the
     # body of the document
     def parse_doc_from_data_source(self, doc: List[str]) -> Tuple[str, str]:
