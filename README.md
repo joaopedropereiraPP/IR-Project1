@@ -45,6 +45,16 @@ With new data file and without stopwords list
 ```
 python3 src/main.py --data_path (path) --nostopwords
 ```
+
+
+## Operation
+
+Initially, open the file and go through chunks of lines, using the filters introduced by the user let's choose the words (tokenizer) and store all the data in files (indexer), called TEMPBLOCKS.
+After these TEMPBLOCKS created, we will add them in order to make the search more easier, where at this stage 3 files will be created:
+* DocKeys - is a review_id (documents) dictionary, where with an integer number, we identify the document
+* MasterIndex - corresponds to the file that contains all the terms that were introduced by the data file, and it identifies the name of the file in which the term is located, in order to make the search faster.
+* PostingIndexBlock - corresponds to a list of documents, which will contain the ordered terms.
+
 ## Authors
 
 João Pedro Pereira - 106346 [GitHub](https://github.com/joaopedropereiraPP)  
