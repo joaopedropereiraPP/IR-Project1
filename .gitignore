@@ -1,2 +1,3 @@
 *cache*/
-/content/
+index/
+content/*.gz
