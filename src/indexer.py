@@ -201,9 +201,13 @@ class Indexer:
                     block_keys = list(temp_merge_dict[block_nr].keys())
                     for term in block_keys:
                         if term <= last_term_to_merge:
-                            self.get_memory_index()[term] += temp_merge_dict[block_nr].pop(term)
+                            if self.tokenizer.use_positions:
+                                posting_dict = temp_merge_dict[block_nr].pop(term)
+                                for posting in posting_dict:
+                                    self.get_memory_index()[term][posting] = posting_dict[posting]
+                            else:
+                                self.get_memory_index()[term].append(temp_merge_dict[block_nr].pop(term))
                             nr_postings_for_term = len(self.get_memory_index()[term])
-                            
                             nr_merged_postings += nr_postings_for_term
                             nr_postings_current_block += nr_postings_for_term
                 
