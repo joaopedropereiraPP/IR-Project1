@@ -3,14 +3,16 @@ from collections import defaultdict
 from typing import DefaultDict, List, Dict, Tuple
 # from gzip import open
 import gzip
-from csv import reader, writer
+from csv import reader, writer, field_size_limit
 from os import path, makedirs
 from contextlib import ExitStack
 from itertools import islice
+from sys import maxsize
 
 class Indexer:
     tokenizer: Tokenizer
     nr_postings_per_temp_block: int
+    block_posting_count: int
     
     memory_index: DefaultDict[str, List[int]]
     memory_index_positional: DefaultDict[str, DefaultDict[str, List[int]]]
@@ -26,9 +28,12 @@ class Indexer:
     index_searcher_start_time: int
     
     def __init__(self, tokenizer: Tokenizer,
-                 nr_postings_per_temp_block: int = 30) -> None:
+                 nr_postings_per_temp_block: int = 1000000) -> None:
+        maxInt = 10000000
+        field_size_limit(maxInt)
         self.tokenizer = tokenizer
         self.nr_postings_per_temp_block = nr_postings_per_temp_block
+        self.block_posting_count = 0
         
         if self.tokenizer.use_positions:
             self.memory_index_positional = defaultdict(lambda: 
@@ -53,7 +58,9 @@ class Indexer:
     def index_doc(self, doc_id, doc_body) -> None:
         tokens = self.tokenizer.tokenize(doc_body)
         
-        self.nr_postings += len(tokens)
+        nr_tokens = len(tokens)
+        self.nr_postings += nr_tokens
+        self.block_posting_count += nr_tokens
         
         for token in tokens:
             if self.tokenizer.use_positions:
@@ -80,7 +87,7 @@ class Indexer:
             for doc in data_reader:
                 
                 # condition to dump index block to disk
-                if self.nr_postings > self.nr_postings_per_temp_block:
+                if self.block_posting_count > self.nr_postings_per_temp_block:
                     
                     self.nr_temp_index_segments += 1
                     block_file_path = '{}/TempBlock{}.tsv'.format(
@@ -145,6 +152,8 @@ class Indexer:
                 block_writer.writerow(
                     self.parse_index_term_for_dumping(block_term))
         
+        self.block_posting_count = 0
+        
         self.get_memory_index().clear()
     
     def parse_index_term_for_dumping(self, term: str) -> List[str]:
@@ -177,7 +186,7 @@ class Indexer:
                                        / self.nr_temp_index_segments) * 0.7)
             
             nr_main_index_blocks = 1
-            nr_postings_current_block = 0
+            self.block_posting_count = 0
             nr_merged_postings = 0
             while(nr_merged_postings < self.nr_postings):
                 
@@ -208,11 +217,10 @@ class Indexer:
                                 self.get_memory_index()[term] += temp_merge_dict[block_nr].pop(term)
                             nr_postings_for_term = len(self.get_memory_index()[term])
                             nr_merged_postings += nr_postings_for_term
-                            nr_postings_current_block += nr_postings_for_term
+                            self.block_posting_count += nr_postings_for_term
                             self.document_frequency[term] = [nr_postings_for_term, nr_main_index_blocks]
                 
-                if nr_postings_current_block >= self.nr_postings_per_temp_block:
-                    nr_postings_current_block = 0
+                if self.block_posting_count >= self.nr_postings_per_temp_block:
                     block_file_path = '{}/PostingIndexBlock{}.tsv'.format(
                         index_blocks_folder, 
                         nr_main_index_blocks)
