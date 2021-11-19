@@ -14,7 +14,7 @@ class Indexer:
     
     memory_index: DefaultDict[str, List[int]]
     memory_index_positional: DefaultDict[str, DefaultDict[str, List[int]]]
-    memory_document_frequency: DefaultDict[str, int]
+    document_frequency: DefaultDict[str, List[int]]
     doc_keys: Dict[int, str]
     
     nr_postings: int
@@ -36,7 +36,7 @@ class Indexer:
         else:
             self.memory_index = defaultdict(list)
         
-        self.memory_document_frequency = defaultdict(int)
+        self.document_frequency = defaultdict(list)
         self.doc_keys = {}
         
         # TODO: make an initialization method to reset everything that can't
@@ -60,7 +60,6 @@ class Indexer:
                 self.get_memory_index()[token][doc_id] = tokens[token]
             else:
                 self.get_memory_index()[token].append(doc_id)
-            self.memory_document_frequency[token] += 1
 
     # All index files will be placed in the index/data_source_filename
     # subfolder
@@ -102,8 +101,8 @@ class Indexer:
                     self.nr_temp_index_segments)
                 self.dump_index_to_disk(block_file_path)
             
-            # self.merge_index_blocks(index_folder)
-
+        self.merge_index_blocks(index_folder)
+        self.dump_doc_frequency(index_folder)
         self.dump_doc_keys(index_folder)
 
     # fields other than reviewid are concatenated separated by spaces, as the
@@ -177,7 +176,7 @@ class Indexer:
             max_terms_per_block = int((self.nr_postings_per_temp_block 
                                        / self.nr_temp_index_segments) * 0.7)
             
-            nr_main_index_blocks = 0
+            nr_main_index_blocks = 1
             nr_postings_current_block = 0
             nr_merged_postings = 0
             while(nr_merged_postings < self.nr_postings):
@@ -206,26 +205,27 @@ class Indexer:
                                 for posting in posting_dict:
                                     self.get_memory_index()[term][posting] = posting_dict[posting]
                             else:
-                                self.get_memory_index()[term].append(temp_merge_dict[block_nr].pop(term))
+                                self.get_memory_index()[term] += temp_merge_dict[block_nr].pop(term)
                             nr_postings_for_term = len(self.get_memory_index()[term])
                             nr_merged_postings += nr_postings_for_term
                             nr_postings_current_block += nr_postings_for_term
+                            self.document_frequency[term] = [nr_postings_for_term, nr_main_index_blocks]
                 
                 if nr_postings_current_block >= self.nr_postings_per_temp_block:
                     nr_postings_current_block = 0
-                    nr_main_index_blocks += 1
                     block_file_path = '{}/PostingIndexBlock{}.tsv'.format(
                         index_blocks_folder, 
                         nr_main_index_blocks)
                     self.dump_index_to_disk(block_file_path)
+                    nr_main_index_blocks += 1
 
     # TODO: ordering?
     def dump_doc_keys(self, index_folder_path: str) -> None:
         file_path = index_folder_path + '/DocKeys.tsv'
         
         with open(file_path, mode='wt', encoding='utf8', 
-                  newline='') as master_index_file:
-            file_writer = writer(master_index_file, delimiter='\t')
+                  newline='') as doc_keys_file:
+            file_writer = writer(doc_keys_file, delimiter='\t')
             # ordered_terms = list(self.get_memory_index().keys())
             # list.sort(ordered_terms)
             for key in self.doc_keys:
@@ -253,3 +253,14 @@ class Indexer:
         else:
             value = list(map(int, posting_str_list))
         return term, value
+
+    def dump_doc_frequency(self, index_folder_path):
+        file_path = index_folder_path + '/MasterIndex.tsv'
+        
+        with open(file_path, mode='wt', encoding='utf8', 
+                  newline='') as master_index_file:
+            file_writer = writer(master_index_file, delimiter='\t')
+            for key in self.document_frequency:
+                file_writer.writerow([key, 
+                                      self.document_frequency[key][0],
+                                      self.document_frequency[key][1]])
