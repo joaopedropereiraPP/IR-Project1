@@ -8,7 +8,7 @@ Create a document indexer using the SPIMI approach. Implement two alternative in
 
 ## Usage
 ```
-usage: main.py [-h] [--data_path path to data file (.gz))] [--nostopwords] [--stopwords (path to stopwords list)] [--word_size (integer number] [--no_word_size] [--no_stemmer] [--use_positions]
+usage: python3 src/main.py [-h] [--data_path path to data file (.gz))] [--nostopwords] [--stopwords (path to stopwords list)] [--word_size (integer number] [--no_word_size] [--no_stemmer] [--use_positions]
 
 optional arguments:
   -h, --help            show this help message and exit
