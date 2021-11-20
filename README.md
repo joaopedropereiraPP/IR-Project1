@@ -38,7 +38,7 @@ optional arguments:
 
 By default
 ```
-python3 src/main.py
+python3 src/main.py --data_path (path)
 ```
 
 With new data file and without stopwords list
