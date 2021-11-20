@@ -6,10 +6,13 @@ import gzip
 from csv import reader, writer, field_size_limit, unix_dialect, QUOTE_NONE
 from os import path, makedirs
 from contextlib import ExitStack
+from time import time
+from glob import glob
 
 class Indexer:
     tokenizer: Tokenizer
     max_postings_per_temp_block: int
+    
     block_posting_count: int
     
     # the positional inverted index needs a different structure to store
@@ -21,18 +24,17 @@ class Indexer:
     # final index blocks
     master_index: DefaultDict[str, List[int]]
     
-    # contains the correspondence of surogate keys to natural keys (the 
+    # contains the correspondence of surrogate keys to natural keys (the 
     # hexadecimal keys from the data source)
     doc_keys: Dict[int, str]
     
-    # TODO: variables here that aren't initialized and used yet
+    # statistics
     nr_postings: int
     nr_indexed_docs: int
     indexing_time: int
     index_size: int
     vocabulary_size: int
     nr_temp_index_segments: int
-    index_searcher_start_time: int
     
     def __init__(self, tokenizer: Tokenizer,
                  max_postings_per_temp_block: int = 1000000) -> None:
@@ -49,9 +51,6 @@ class Indexer:
         self.master_index = defaultdict(lambda: [0, 0])
         self.doc_keys = {}
         
-        # TODO: make an initialization method to reset everything that can't
-        # be reused so that the indexer can index multiple times with one 
-        # instance
         self.initialize_statistics()
     
     def get_inverted_index(self):
@@ -59,7 +58,28 @@ class Indexer:
             return self.inverted_index_positional
         else:
             return self.inverted_index
+    
+    def initialize_statistics(self) -> None:
+        self.nr_postings = 0
+        self.nr_indexed_docs = 0
+        self.indexing_time = 0
+        self.index_size = 0
+        self.vocabulary_size = 0
+        self.nr_temp_index_segments = 0
+    
+    def get_statistics(self) -> Dict[str, int]:
+        statistics = {
+            'Total indexing time (s)': self.indexing_time,
+            'Total index size on disk (bytes)': self.index_size,
+            'Vocabulary size': self.vocabulary_size,
+            'Number of temporary index segments': self.nr_temp_index_segments,
+            'Number of indexed documents': self.nr_indexed_docs,
+            'Number of postings': self.nr_postings,
+        }
 
+        return statistics
+
+    # tokenize and index document
     def index_doc(self, doc_id, doc_body) -> None:
         tokens = self.tokenizer.tokenize(doc_body)
         
@@ -73,10 +93,12 @@ class Indexer:
             else:
                 self.get_inverted_index()[token].append(doc_id)
 
-    # all index files will be placed in the index/data_source_filename
-    # subfolder
+    # start indexing a data source, the index files will be placed in the 
+    # index/data_source_filename subfolder
     def index_data_source(self, data_source_path: str) -> None:
         self.initialize_statistics()
+        
+        start_time = time()
         
         index_folder = 'index/' + path.basename(data_source_path).split('.')[0]
         if not path.exists(index_folder):
@@ -125,64 +147,20 @@ class Indexer:
         self.dump_master_index(index_folder)
         
         self.dump_doc_keys(index_folder)
+        
+        end_time = time()
+        
+        self.indexing_time = end_time - start_time
+        
+        file_list = glob(index_folder + '/PostingIndexBlock*.tsv')
+        file_list.append(index_folder + '/MasterIndex.tsv')
+        file_list.append(index_folder + '/DocKeys.tsv')
+        for file_path in file_list:
+            self.index_size += path.getsize(file_path)
+        
+        self.vocabulary_size = len(self.doc_keys)
 
-    # fields other than reviewid are concatenated separated by spaces, as the
-    # body of the document
-    def parse_doc_from_data_source(self, doc: List[str]) -> Tuple[str, str]:
-        doc_id = doc[2]
-        doc_body = '{} {} {}'.format(doc[5], doc[12], doc[13])
-        
-        self.nr_indexed_docs += 1
-        self.doc_keys[self.nr_indexed_docs] = doc_id
-
-        return self.nr_indexed_docs, doc_body
-
-    def get_statistics(self) -> Dict[str, int]:
-        statistics = {
-            'Total indexing time (s)': self.indexing_time,
-            'Total index size on disk (bytes)': self.index_size,
-            'Vocabulary size': self.vocabulary_size,
-            'Number of temporary index segments': self.nr_temp_index_segments,
-        }
-
-        return statistics
-    
-    def initialize_statistics(self) -> None:
-        self.nr_postings = 0
-        self.nr_indexed_docs = 0
-        self.indexing_time = 0
-        self.index_size = 0
-        self.vocabulary_size = 0
-        self.nr_temp_index_segments = 0
-    
-    def dump_index_to_disk(self, file_path: str) -> None:
-        with open(file_path, mode='wt', encoding='utf8', 
-                  newline='') as block_file:
-            block_writer = writer(block_file, delimiter='\t')
-            
-            ordered_terms = list(self.get_inverted_index().keys())
-            list.sort(ordered_terms)
-            for block_term in ordered_terms:
-                block_writer.writerow(
-                    self.parse_index_term_for_dumping(block_term))
-        
-        self.block_posting_count = 0
-        
-        self.get_inverted_index().clear()
-    
-    def parse_index_term_for_dumping(self, term: str) -> List[str]:
-        row = [term]
-        
-        for posting in self.get_inverted_index()[term]:
-            if self.tokenizer.use_positions:
-                positions_str = ','.join([str(i) for i in 
-                                  self.get_inverted_index()[term][posting]])
-                row.append(str(posting) + ':' + positions_str)
-            else:
-                row.append(str(posting))
-        
-        return row
-        
+    # merge temporary index blocks and create the final index blocks
     def merge_index_blocks(self, index_blocks_folder: str) -> None:
         file_path_list = []
         last_term_list = []
@@ -262,14 +240,10 @@ class Indexer:
                                 
                                 self.get_inverted_index()[term] += temp_merge_dict[block_nr].pop(term)
                             
-                            # print(block_nr, term, nr_postings_for_term)
                             nr_merged_postings += nr_postings_for_term
-                            # self.master_index[term] = [nr_postings_for_term, nr_final_index_blocks]
                             self.master_index[term][0] += nr_postings_for_term
                             self.master_index[term][1] = nr_final_index_blocks
                 
-                # print(self.block_posting_count, self.max_postings_per_temp_block, max_postings_read_per_block)
-                # print(nr_merged_postings, self.nr_postings)
                 # dump to disk if the number of postings on the final index on
                 # memory exceeds the maximum per block
                 if self.block_posting_count >= self.max_postings_per_temp_block:
@@ -287,18 +261,7 @@ class Indexer:
                     nr_final_index_blocks)
                 self.dump_index_to_disk(block_file_path)
 
-    # TODO: ordering?
-    def dump_doc_keys(self, index_folder_path: str) -> None:
-        file_path = index_folder_path + '/DocKeys.tsv'
-        
-        with open(file_path, mode='wt', encoding='utf8', 
-                  newline='') as doc_keys_file:
-            file_writer = writer(doc_keys_file, delimiter='\t')
-            # ordered_terms = list(self.get_inverted_index().keys())
-            # list.sort(ordered_terms)
-            for key in self.doc_keys:
-                file_writer.writerow([key, self.doc_keys[key]])
-
+    # add index file to memory
     def read_index_from_disk(self, index_file_path: str):
         with open(index_file_path, 
                   mode='rt', encoding='utf8', newline='') as data_file:
@@ -308,6 +271,7 @@ class Indexer:
                 term, value = self.parse_index_file_row(row)
                 self.get_inverted_index()[term] = value
 
+    # process the contents of an index file for indexing in memory again
     def parse_index_file_row(self, row: List[str]):
         term = row[0]
         posting_str_list = row[1:]
@@ -322,6 +286,56 @@ class Indexer:
             value = list(map(int, posting_str_list))
         return term, value
 
+    # process the contents of an Amazon review data file for indexing. 
+    # Fields other than reviewid are concatenated separated by spaces, as the
+    # body of the document
+    def parse_doc_from_data_source(self, doc: List[str]) -> Tuple[str, str]:
+        doc_id = doc[2]
+        doc_body = '{} {} {}'.format(doc[5], doc[12], doc[13])
+        
+        self.nr_indexed_docs += 1
+        self.doc_keys[self.nr_indexed_docs] = doc_id
+
+        return self.nr_indexed_docs, doc_body
+
+    # process the contents of a term from the index on memory for storing on
+    # disk
+    def parse_index_term_for_dumping(self, term: str) -> List[str]:
+        row = [term]
+        
+        for posting in self.get_inverted_index()[term]:
+            if self.tokenizer.use_positions:
+                positions_str = ','.join([str(i) for i in 
+                                  self.get_inverted_index()[term][posting]])
+                row.append(str(posting) + ':' + positions_str)
+            else:
+                row.append(str(posting))
+        
+        return row
+
+    # the resulting TSV file on disk will have a term on the first column of
+    # each row, and a posting on each subsequent column, as its document ID.
+    # When positions are being considered for the index, each posting will be a
+    # string containing the document ID followed by the character ':' and a the
+    # list of positions on the document separated by ','
+    def dump_index_to_disk(self, file_path: str) -> None:
+        with open(file_path, mode='wt', encoding='utf8', 
+                  newline='') as block_file:
+            block_writer = writer(block_file, delimiter='\t')
+            
+            ordered_terms = list(self.get_inverted_index().keys())
+            list.sort(ordered_terms)
+            for block_term in ordered_terms:
+                block_writer.writerow(
+                    self.parse_index_term_for_dumping(block_term))
+        
+        self.block_posting_count = 0
+        
+        self.get_inverted_index().clear()
+    
+    # the resulting TSV file on disk will have a term on the first column of
+    # each row, followed on each column by its document frequency and the block 
+    # number of the final index where it can be found
     def dump_master_index(self, index_folder_path):
         file_path = index_folder_path + '/MasterIndex.tsv'
         
@@ -335,3 +349,16 @@ class Indexer:
                 file_writer.writerow([key, 
                                       self.master_index[key][0],
                                       self.master_index[key][1]])
+
+    # the resulting TSV file on disk will have the surrogate key on each row,
+    # followed by the natural key (hexadecimal) on the next column
+    def dump_doc_keys(self, index_folder_path: str) -> None:
+        file_path = index_folder_path + '/DocKeys.tsv'
+        
+        with open(file_path, mode='wt', encoding='utf8', 
+                  newline='') as doc_keys_file:
+            file_writer = writer(doc_keys_file, delimiter='\t')
+            # ordered_terms = list(self.get_inverted_index().keys())
+            # list.sort(ordered_terms)
+            for key in self.doc_keys:
+                file_writer.writerow([key, self.doc_keys[key]])
