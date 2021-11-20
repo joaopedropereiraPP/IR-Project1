@@ -24,10 +24,13 @@ class Main:
 
 
         #Default arguments
-        self.data_path = ['content/amazon_reviews_us_Books_v1_00.tsv.gz' , 
+        """self.data_path = ['content/amazon_reviews_us_Books_v1_00.tsv.gz' , 
                             'content/amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz', 
                             'content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz', 
-                            'content/amazon_reviews_us_Music_v1_00.tsv.gz']
+                            'content/amazon_reviews_us_Music_v1_00.tsv.gz']"""
+
+        self.data_path = ['content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz']
+
         self.stopwords_path = 'content/stopwords.txt'
         self.minimum_word_size = 3
         self.stemmer_enabled = True
@@ -43,7 +46,8 @@ class Main:
         self.query = Query(stopwords_path = self.stopwords_path, 
                                 stemmer_enabled = self.stemmer_enabled, 
                                 size_filter=self.minimum_word_size, 
-                                use_positions=self.use_positions)
+                                use_positions=self.use_positions,
+                                data_path=self.data_path[0])
 
 
         
@@ -120,11 +124,18 @@ class Main:
         args = parser.parse_args()
         self.check_arguments(parser, args)
 
-        #self.indexer.index_data_source(data_source_path = self.data_path[0])
+        self.indexer.index_data_source(data_source_path = self.data_path[0])
 
+        statistics = self.indexer.get_statistics()
+
+
+        for i in statistics.keys():
+            print(i + str(statistics[i]))
+
+        print("Word to Search:")
         word_to_search = input()
         while word_to_search != '0':
-
+            print("Word to Search:")
             self.query.process_query(word_to_search)
 
             word_to_search = input()

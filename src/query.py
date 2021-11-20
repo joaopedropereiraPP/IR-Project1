@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 from os import path
 import re
 from collections import defaultdict
-
+from os import path, makedirs
 
 class Query:
 
@@ -21,17 +21,17 @@ class Query:
     tokenize:Tokenizer      
     word_compressed:str  
 
-    def __init__(self, doc_keys_folder_path = "index/doc_keys.tsv", 
-                master_index_folder_path = "index/master_index.tsv", stopwords_path='',stemmer_enabled=True, size_filter=0, use_positions = False) :
+    def __init__(self, data_path , stopwords_path='',stemmer_enabled=True, size_filter=0, use_positions = False) :
         
         #DOC KEYS FILE
         # doc_id:pointer 
         self.dock_keys= {}
-        self.doc_keys_folder_path = doc_keys_folder_path
+        self.doc_keys_folder_path = 'index/' + path.basename(data_path).split('.')[0] + '/DocKeys.tsv'
 
         #MASTER INDEX FILE
         # { termo: { 'numbers': 5 , 'file_path': file1.tsv } , ... }
-        self.master_index_folder_path = master_index_folder_path
+        self.master_index_folder_path = 'index/' + path.basename(data_path).split('.')[0] + '/MasterIndex.tsv'
+
         self.master_index = defaultdict(lambda: defaultdict(dict))
 
         self.tokenize = Tokenizer(stopwords_path='',stemmer_enabled=True, size_filter=0)      
