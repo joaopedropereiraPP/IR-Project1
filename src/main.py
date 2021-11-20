@@ -2,6 +2,7 @@ import sys
 from typing import List
 from tokenizer import Tokenizer
 from indexer import Indexer
+from query import Query
 from gzip import open
 from csv import DictReader, field_size_limit
 from sys import maxsize, argv, exit
@@ -38,7 +39,11 @@ class Main:
                                 use_positions=self.use_positions)
         
         self.indexer = Indexer(tokenizer = self.tokenizer)
-    
+
+        self.query = Query(stopwords_path = self.stopwords_path, 
+                                stemmer_enabled = self.stemmer_enabled, 
+                                size_filter=self.minimum_word_size, 
+                                use_positions=self.use_positions)
 
 
         
@@ -66,8 +71,8 @@ class Main:
         parser.add_argument("--no_stemmer", help="Set not to use Stemmer",
                             action="store_false")
         #NOT USE POSITIONS
-        parser.add_argument("--use_positions", help="Set not to use Stemmer",
-                            action="store_false")
+        parser.add_argument("--use_positions", help="Set to use positions",
+                            action="store_true")
 
         return parser
 
@@ -102,7 +107,7 @@ class Main:
         if not args.no_word_size:
             self.minimum_word_size = 0
         
-        if not args.nostemmer:
+        if not args.no_stemmer:
             self.stemmer_enabled = False
 
         if not args.use_positions:
@@ -115,7 +120,7 @@ class Main:
         args = parser.parse_args()
         self.check_arguments(parser, args)
 
-        self.indexer.index_data_source(data_source_path = self.data_path[0])
+        #self.indexer.index_data_source(data_source_path = self.data_path[0])
 
         word_to_search = input()
         while word_to_search != '0':

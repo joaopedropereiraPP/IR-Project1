@@ -17,12 +17,12 @@ class Query:
     dock_keys= {}
     doc_keys_folder_path:str
     master_index_folder_path:str
-    #master_index = Dict[]
+    master_index:dict
     tokenize:Tokenizer      
     word_compressed:str  
 
     def __init__(self, doc_keys_folder_path = "index/doc_keys.tsv", 
-                master_index_folder_path = "index/master_index.tsv") :
+                master_index_folder_path = "index/master_index.tsv", stopwords_path='',stemmer_enabled=True, size_filter=0, use_positions = False) :
         
         #DOC KEYS FILE
         # doc_id:pointer 
@@ -50,13 +50,12 @@ class Query:
     def read_master_index(self):
         line = []
         with open(self.master_index_folder_path,'r')as file:
-            filecontent= csv.reader(file,delimiter=':')
+            filecontent= csv.reader(file, delimiter='\t')
             for row in filecontent:
                 term = row[0]
-                collection = row[1].split(",")
-                number = collection[0]
-                file_path = collection[1]
-                self.master_index[term]['numbers'] = number
+                number = row[1]
+                file_path = row[2]
+                self.master_index[term]['doc_freq'] = number
                 self.master_index[term]['file_path'] = file_path
 
     def term_tokenizer(self, term):
@@ -66,11 +65,10 @@ class Query:
 
     def process_query(self, term:str):
         
-        self.word_compressed = list(self.term_tokenizer(term).keys())[0]
-        print()
+        self.word_compressed = list(self.term_tokenizer(term))
         self.read_master_index()
-        
-        
-        print("Term: " + term)
-        print(" token:" + self.word_compressed)
-        print(" Numbers: "+str(self.master_index[self.word_compressed]['numbers']))
+        for word in self.word_compressed:
+            print("Entered Word: " + term)
+            print("Normalized word:" + word)
+            print("Doc frequency: "+str("Not found" if self.master_index[word]['doc_freq']=={} else self.master_index[word]['doc_freq']))
+            print("File to Search: "+str("Not found" if self.master_index[word]['file_path']=={} else self.master_index[word]['file_path']))

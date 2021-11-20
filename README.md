@@ -6,6 +6,55 @@ Create a document indexer using the SPIMI approach. Implement two alternative in
 
 
 
+## Usage
+```
+usage: python3 src/main.py [-h] [--data_path path to data file (.gz))] [--nostopwords] [--stopwords (path to stopwords list)] [--word_size (integer number] [--no_word_size] [--no_stemmer] [--use_positions]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --data_path (path to data file (.gz))
+                        Set the path to the data
+  --nostopwords         Set not to use Stop Words List
+  --stopwords (path to stopwords list)
+                        Set the path to Stop Words List
+  --word_size (integer number)
+                        Set the minimum words size
+  --no_word_size        Set not to use minimum words size
+  --no_stemmer          Set not to use Stemmer
+  --use_positions       Set to use positions
+```
+
+* The data_path option is to introduce a data file, by default it will use the ["content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz"](content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz)
+
+* The nostopwords option is to identify not to use the stopwords list.
+* The stopwords options is to identify a new stopword list, by default we use this [stopword list](content/stopwords.txt).
+* The word_size option is to set another minimum words size, by defaut the size is 3.
+* The no_word_size option is to identify not to use a word size filter.
+* The no_stemmer option is to identify not to use semmers words.
+* The use_positions option is to identify to use the position list, by default we will not use.
+
+
+## Example to run
+
+By default
+```
+python3 src/main.py
+```
+
+With new data file and without stopwords list
+```
+python3 src/main.py --data_path (path) --nostopwords
+```
+
+
+## Operation
+
+Initially, open the file and go through chunks of lines, using the filters introduced by the user let's choose the words (tokenizer) and store all the data in files (indexer), called TEMPBLOCKS.
+After these TEMPBLOCKS created, we will add them in order to make the search more easier, where at this stage 3 files will be created:
+* DocKeys - is a review_id (documents) dictionary, where with an integer number, we identify the document
+* MasterIndex - corresponds to the file that contains all the terms that were introduced by the data file, and it identifies the name of the file in which the term is located, in order to make the search faster.
+* PostingIndexBlock - corresponds to a list of documents, which will contain the ordered terms.
+
 ## Authors
 
 João Pedro Pereira - 106346 [GitHub](https://github.com/joaopedropereiraPP)  
