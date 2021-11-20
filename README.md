@@ -63,6 +63,10 @@ The process will end when the value 0 is entered
 The first results refer to the values that took the indexing process
 In this case, the file amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz return
 
+| Data source | Nr. of indexed documents | Nr. of postings | Vocabulary size | Total indexing time (s) | Total index size on disk (MB) | Number of temporary index segments | Time to set up a query searcher |
+|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
+|test|0|0|0|0|0|0|0|
+
     Total indexing time (s): 184.74614882469177
     Total index size on disk (bytes): 299375435
     Vocabulary size: 1688884
