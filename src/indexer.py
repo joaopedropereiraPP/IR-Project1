@@ -3,7 +3,7 @@ from collections import defaultdict
 from typing import DefaultDict, List, Dict, Tuple
 # from gzip import open
 import gzip
-from csv import reader, writer, field_size_limit
+from csv import reader, writer, field_size_limit, unix_dialect, QUOTE_NONE
 from os import path, makedirs
 from contextlib import ExitStack
 
@@ -82,9 +82,16 @@ class Indexer:
         if not path.exists(index_folder):
             makedirs(index_folder)
         
+        # define the dialect used by csv.reader to correctly interpret amazon
+        # review data files
+        dialect = unix_dialect()
+        dialect.delimiter = '\t'
+        dialect.quoting = QUOTE_NONE
+        dialect.escapechar = None
+        
         with gzip.open(data_source_path, 
                   mode='rt', encoding='utf8', newline='') as data_file:
-            data_reader = reader(data_file, delimiter='\t')
+            data_reader = reader(data_file, dialect)
             
             # skip the first line (the header)
             data_file.readline()
