@@ -66,7 +66,7 @@ class Query:
     def process_query(self, term:str):
         
         self.word_compressed = list(self.term_tokenizer(term))
-        self.read_master_index()
+        
         for word in self.word_compressed:
             print("Entered Word: " + term)
             print("Normalized word:" + word)

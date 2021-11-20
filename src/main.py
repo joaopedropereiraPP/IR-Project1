@@ -138,7 +138,10 @@ class Main:
                         size_filter=self.minimum_word_size, 
                         use_positions=self.use_positions,
                         data_path=self.data_path)
-
+        
+        
+        query.read_master_index()
+      
         print("Time to set up a query searcher:" +str(time()- tic) )
         print("Word to Search:")
         word_to_search = input()
