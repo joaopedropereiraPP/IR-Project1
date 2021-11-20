@@ -1,15 +1,7 @@
-import sys
-from typing import Dict, List
 from tokenizer import Tokenizer
-from indexer import Indexer
-import gzip
 import csv
-from sys import maxsize, argv, exit
-from argparse import ArgumentParser
 from os import path
-import re
 from collections import defaultdict
-from os import path, makedirs
 
 class Query:
 
@@ -68,7 +60,7 @@ class Query:
         self.word_compressed = list(self.term_tokenizer(term))
         
         for word in self.word_compressed:
-            print("Entered Word: " + term)
-            print("Normalized word:" + word)
-            print("Doc frequency: "+str("Not found" if self.master_index[word]['doc_freq']=={} else self.master_index[word]['doc_freq']))
-            print("File to Search: "+str("Not found" if self.master_index[word]['file_path']=={} else self.master_index[word]['file_path']))
+            print("Inserted term: " + term)
+            print("Normalized term: " + word)
+            print("Document frequency: " + str("Not found" if self.master_index[word]['doc_freq']=={} else self.master_index[word]['doc_freq']))
+            print("Main index block number for term: "+ str("Not found" if self.master_index[word]['file_path']=={} else self.master_index[word]['file_path']))

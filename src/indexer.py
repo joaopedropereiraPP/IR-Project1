@@ -1,7 +1,6 @@
 from tokenizer import Tokenizer
 from collections import defaultdict
 from typing import DefaultDict, List, Dict, Tuple
-# from gzip import open
 import gzip
 from csv import reader, writer, field_size_limit, unix_dialect, QUOTE_NONE
 from os import path, makedirs
@@ -69,12 +68,12 @@ class Indexer:
     
     def get_statistics(self) -> Dict[str, int]:
         statistics = {
-            'Total indexing time (s)': self.indexing_time,
-            'Total index size on disk (bytes)': self.index_size,
-            'Vocabulary size': self.vocabulary_size,
-            'Number of temporary index segments': self.nr_temp_index_segments,
             'Number of indexed documents': self.nr_indexed_docs,
             'Number of postings': self.nr_postings,
+            'Vocabulary size': self.vocabulary_size,
+            'Total indexing time (s)': self.indexing_time,
+            'Total index size on disk (MB)': self.index_size,
+            'Number of temporary index segments': self.nr_temp_index_segments,
         }
 
         return statistics
@@ -157,6 +156,7 @@ class Indexer:
         file_list.append(index_folder + '/DocKeys.tsv')
         for file_path in file_list:
             self.index_size += path.getsize(file_path)
+        self.index_size = self.index_size / 1000000.0
         
         self.vocabulary_size = len(self.doc_keys)
 
@@ -316,7 +316,7 @@ class Indexer:
     # the resulting TSV file on disk will have a term on the first column of
     # each row, and a posting on each subsequent column, as its document ID.
     # When positions are being considered for the index, each posting will be a
-    # string containing the document ID followed by the character ':' and a the
+    # string containing the document ID followed by the character ':' and the
     # list of positions on the document separated by ','
     def dump_index_to_disk(self, file_path: str) -> None:
         with open(file_path, mode='wt', encoding='utf8', 

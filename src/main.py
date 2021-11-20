@@ -1,32 +1,25 @@
 import sys
-from typing import List
 from tokenizer import Tokenizer
 from indexer import Indexer
 from query import Query
-from gzip import open
-from csv import DictReader, field_size_limit
-from sys import maxsize, argv, exit
 from argparse import ArgumentParser
 from os import path
 from time import time
 
-
 class Main:
-    data_path:str
-    stopwords_path:str
-    minimum_word_size:int
-    stemmer_enabled:bool
-    use_positions:bool
-    parser:ArgumentParser
-    tokenizer:Tokenizer     
-    indexer:Indexer
+    data_path: str
+    stopwords_path: str
+    minimum_word_size: int
+    stemmer_enabled: bool
+    use_positions: bool
+    parser: ArgumentParser
+    tokenizer: Tokenizer     
+    indexer: Indexer
 
     def __init__(self) :
 
-
-        #Default arguments
+        # default arguments
         self.data_path = ""
-
         self.stopwords_path = 'content/stopwords.txt'
         self.minimum_word_size = 3
         self.stemmer_enabled = True
@@ -37,37 +30,30 @@ class Main:
                                 stemmer_enabled = self.stemmer_enabled, 
                                 size_filter=self.minimum_word_size, 
                                 use_positions=self.use_positions)
-        
-        
         self.indexer = Indexer(tokenizer = self.tokenizer, max_postings_per_temp_block = self.max_post)
-
-
-
-        
-         
  
     def parse_args(self):
         
         parser = ArgumentParser()
-        #PATH TO NEW DATA FILE
+        # path to new data file
         parser.add_argument("--data_path", help="Set the path to the data", required=True, 
                             type=str, metavar="(path to data file (.gz))")
-        #NOT USE STOPWORDS LIST
-        parser.add_argument("--nostopwords", help="Set not to use Stop Words List",
+        # do not use stopwords list
+        parser.add_argument("--nostopwords", help="Do not use Stop Words",
                             action="store_false")
-        #PATH TO NEW STOPWORDS
+        # path to new stopwords
         parser.add_argument("--stopwords", help="Set the path to Stop Words List", 
                             type=str, metavar="(path to stopwords list)")
-        #MINIMUM WORD SIZE
+        # minimum word size
         parser.add_argument("--word_size", help="Set the minimum words size", 
                             type=int, metavar="(integer number)")
-        #NO MINIMUM WORD SIZE
+        # no minimum word size
         parser.add_argument("--no_word_size", help="Set not to use minimum words size",
                             action="store_false")
-        #NOT USE STEMMER APPROACH
+        # do not use stemmer
         parser.add_argument("--no_stemmer", help="Set not to use Stemmer",
                             action="store_false")
-        #NOT USE POSITIONS
+        # do not use positions
         parser.add_argument("--use_positions", help="Set to use positions",
                             action="store_true")
 
@@ -84,7 +70,7 @@ class Main:
                 print(parser.parse_args(['-h']))
                 sys.exit()
         
-        #SE NÃO QUER LISTA DE STOPWORDS, MAS DEFINE UMA LISTA
+        # if stopwords are disabled but a stopwords path is still defined by the user
         if (not args.nostopwords) and (args.stopwords != None):
             print(parser.parse_args(['-h']))
             sys.exit()
@@ -95,7 +81,7 @@ class Main:
         if args.stopwords:
             self.stopwords_path = args.stopwords
 
-        #SE NÃO QUER TAMANHO MINIMO DE LETRAS, MAS DEFINE UM TAMANHO
+        # if word size is disabled but a size is still defined by the user
         if (not args.no_word_size) and (args.word_size != None):
             print(parser.parse_args(['-h']))
             sys.exit()
@@ -117,8 +103,7 @@ class Main:
 
     def main(self):
 
-        tic = time()
-        #Create ad check all arguments
+        # create and check all arguments
         parser = self.parse_args()
         args = parser.parse_args()
         self.check_arguments(parser, args)
@@ -127,11 +112,8 @@ class Main:
 
         statistics = self.indexer.get_statistics()
 
-
-        for i in statistics.keys():
-            print(i + ": " + str(statistics[i]))
-
-
+        for statistic in statistics:
+            print(statistic + ": " + str(statistics[statistic]))
 
         query = Query(stopwords_path = self.stopwords_path, 
                         stemmer_enabled = self.stemmer_enabled, 
@@ -139,21 +121,19 @@ class Main:
                         use_positions=self.use_positions,
                         data_path=self.data_path)
         
+        initial_time = time()
         
         query.read_master_index()
       
-        print("Time to set up a query searcher:" +str(time()- tic) )
-        print("Word to Search:")
+        print("Time to set up a query searcher (s): " + str(time() - initial_time) )
+        print("Search term:")
         word_to_search = input()
         while word_to_search != '0':
             
             query.process_query(word_to_search)
-            print("Word to Search ( 0 to exit ):")
+            print("Search term ( 0 to exit ):")
             word_to_search = input()
-
 
 if __name__ == "__main__":    
     
     Main().main()
-
-    

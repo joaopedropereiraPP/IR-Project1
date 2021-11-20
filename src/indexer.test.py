@@ -23,4 +23,3 @@ stats = indexer.get_statistics()
 
 # indexer.index_doc('ID1', 'This is a test document, dummy!')
 # indexer.index_doc('ID2', 'This is yet another document to test document indexing.')
-
