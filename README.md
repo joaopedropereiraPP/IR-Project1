@@ -64,7 +64,6 @@ The first results refer to the values that took the indexing process
 In this case, the file amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz return
 
     Total indexing time (s): 184.74614882469177
-    
     Total index size on disk (bytes): 299375435
     Vocabulary size: 1688884
     Number of temporary index segments: 34
@@ -72,6 +71,7 @@ In this case, the file amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz ret
     Number of postings: 33489189
 
 After return this values, the user need to enter the word to search (this example the word to search is "test"):
+
     Word to Search:
     test
     Entered Word: test
