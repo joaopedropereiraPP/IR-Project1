@@ -8,7 +8,7 @@ Create a document indexer using the SPIMI approach. Implement two alternative in
 
 ## Usage
 ```
-usage: python3 src/main.py [-h] [--data_path path to data file (.gz))] [--nostopwords] [--stopwords (path to stopwords list)] [--word_size (integer number] [--no_word_size] [--no_stemmer] [--use_positions]
+usage: python3 src/main.py [-h] --data_path path to data file (.gz)) [--nostopwords] [--stopwords (path to stopwords list)] [--word_size (integer number] [--no_word_size] [--no_stemmer] [--use_positions]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -22,6 +22,7 @@ optional arguments:
   --no_word_size        Set not to use minimum words size
   --no_stemmer          Set not to use Stemmer
   --use_positions       Set to use positions
+
 ```
 
 * The data_path option is to introduce a data file, by default it will use the ["content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz"](content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz)
@@ -54,6 +55,29 @@ After these TEMPBLOCKS created, we will add them in order to make the search mor
 * DocKeys - is a review_id (documents) dictionary, where with an integer number, we identify the document
 * MasterIndex - corresponds to the file that contains all the terms that were introduced by the data file, and it identifies the name of the file in which the term is located, in order to make the search faster.
 * PostingIndexBlock - corresponds to a list of documents, which will contain the ordered terms.
+
+After creating all the files, it is necessary to enter the search word.
+The process will end when the value 0 is entered 
+
+## The results
+
+The first results refer to the values ​​that took the indexing process
+In this case, the file amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz return
+    Total indexing time (s): 184.74614882469177
+    Total index size on disk (bytes): 299375435
+    Vocabulary size: 1688884
+    Number of temporary index segments: 34
+    Number of indexed documents: 1688884
+    Number of postings: 33489189
+
+After return this values, the user need to enter the word to search (this example the word to search is "test"):
+    Word to Search:
+    test
+    Entered Word: test
+    Normalized word:test
+    Doc frequency: 3652
+    File to Search: 22
+
 
 ## Authors
 

@@ -11,7 +11,7 @@ from os import path
 
 
 class Main:
-    data_path:List[str]
+    data_path:str
     stopwords_path:str
     minimum_word_size:int
     stemmer_enabled:bool
@@ -24,12 +24,7 @@ class Main:
 
 
         #Default arguments
-        """self.data_path = ['content/amazon_reviews_us_Books_v1_00.tsv.gz' , 
-                            'content/amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz', 
-                            'content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz', 
-                            'content/amazon_reviews_us_Music_v1_00.tsv.gz']"""
-
-        self.data_path = ['content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz']
+        self.data_path = ""
 
         self.stopwords_path = 'content/stopwords.txt'
         self.minimum_word_size = 3
@@ -43,11 +38,6 @@ class Main:
         
         self.indexer = Indexer(tokenizer = self.tokenizer)
 
-        self.query = Query(stopwords_path = self.stopwords_path, 
-                                stemmer_enabled = self.stemmer_enabled, 
-                                size_filter=self.minimum_word_size, 
-                                use_positions=self.use_positions,
-                                data_path=self.data_path[0])
 
 
         
@@ -57,7 +47,7 @@ class Main:
         
         parser = ArgumentParser()
         #PATH TO NEW DATA FILE
-        parser.add_argument("--data_path", help="Set the path to the data", 
+        parser.add_argument("--data_path", help="Set the path to the data", required=True, 
                             type=str, metavar="(path to data file (.gz))")
         #NOT USE STOPWORDS LIST
         parser.add_argument("--nostopwords", help="Set not to use Stop Words List",
@@ -83,8 +73,8 @@ class Main:
     def check_arguments(self, parser, args):
 
         if args.data_path :
-            self.data_path = [args.data_path]
-            if not path.isfile(self.data_path[0]) or not self.data_path[0].endswith('.gz'):
+            self.data_path = args.data_path
+            if not path.exists(self.data_path) or not self.data_path.endswith('.gz'):
                 print("File does not exist or does not have the correct extension! ")
                 print(parser.parse_args(['-h']))
                 sys.exit()
@@ -124,20 +114,29 @@ class Main:
         args = parser.parse_args()
         self.check_arguments(parser, args)
 
-        self.indexer.index_data_source(data_source_path = self.data_path[0])
+        self.indexer.index_data_source(data_source_path = self.data_path)
 
         statistics = self.indexer.get_statistics()
 
 
         for i in statistics.keys():
-            print(i + str(statistics[i]))
+            print(i + ": " + str(statistics[i]))
+
+
+
+        query = Query(stopwords_path = self.stopwords_path, 
+                        stemmer_enabled = self.stemmer_enabled, 
+                        size_filter=self.minimum_word_size, 
+                        use_positions=self.use_positions,
+                        data_path=self.data_path)
+
 
         print("Word to Search:")
         word_to_search = input()
         while word_to_search != '0':
-            print("Word to Search:")
-            self.query.process_query(word_to_search)
-
+            
+            query.process_query(word_to_search)
+            print("Word to Search ( 0 to exit ):")
             word_to_search = input()
 
 
