@@ -8,6 +8,7 @@ from csv import DictReader, field_size_limit
 from sys import maxsize, argv, exit
 from argparse import ArgumentParser
 from os import path
+from time import time
 
 
 class Main:
@@ -116,6 +117,7 @@ class Main:
 
     def main(self):
 
+        tic = time()
         #Create ad check all arguments
         parser = self.parse_args()
         args = parser.parse_args()
@@ -137,7 +139,7 @@ class Main:
                         use_positions=self.use_positions,
                         data_path=self.data_path)
 
-
+        print("Time to set up a query searcher:" +str(time()- tic) )
         print("Word to Search:")
         word_to_search = input()
         while word_to_search != '0':
