@@ -8,7 +8,7 @@ Create a document indexer using the SPIMI approach. Implement two alternative in
 
 ## Usage
 ```
-usage: python3 src/main.py [-h] --data_path path to data file (.gz)) [--nostopwords] [--stopwords (path to stopwords list)] [--word_size (integer number] [--no_word_size] [--no_stemmer] [--use_positions]
+usage: python3 src/main.py [-h] --data_path path to data file (.gz)) [--nostopwords] [--stopwords (path to stopwords list)] [--word_size (integer number] [--no_word_size] [--no_stemmer] [--use_positions] [--max_post]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -22,7 +22,7 @@ optional arguments:
   --no_word_size        Set not to use minimum words size
   --no_stemmer          Set not to use Stemmer
   --use_positions       Set to use positions
-
+  --max_post MAX_POST   Set the maximum postings per temp block
 ```
 
 * The data_path option is to introduce a data file, by default it will use the ["content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz"](content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz)

@@ -30,13 +30,15 @@ class Main:
         self.minimum_word_size = 3
         self.stemmer_enabled = True
         self.use_positions = False
+        self.max_post = 1000000
         self.parser = ArgumentParser()
         self.tokenizer = Tokenizer(stopwords_path = self.stopwords_path, 
                                 stemmer_enabled = self.stemmer_enabled, 
                                 size_filter=self.minimum_word_size, 
                                 use_positions=self.use_positions)
         
-        self.indexer = Indexer(tokenizer = self.tokenizer)
+        
+        self.indexer = Indexer(tokenizer = self.tokenizer, max_postings_per_temp_block = self.max_post)
 
 
 
@@ -68,6 +70,8 @@ class Main:
         parser.add_argument("--use_positions", help="Set to use positions",
                             action="store_true")
 
+        parser.add_argument("--max_post", help="Set the maximum postings per temp block",
+                            type=int)
         return parser
 
     def check_arguments(self, parser, args):
@@ -106,6 +110,9 @@ class Main:
 
         if not args.use_positions:
             self.use_positions = True 
+
+        if args.max_post:
+            self.max_post = args.max_post     
 
     def main(self):
 
