@@ -6,19 +6,26 @@ import gzip
 from csv import reader, writer, field_size_limit
 from os import path, makedirs
 from contextlib import ExitStack
-from itertools import islice
-from sys import maxsize
 
 class Indexer:
     tokenizer: Tokenizer
-    nr_postings_per_temp_block: int
+    max_postings_per_temp_block: int
     block_posting_count: int
     
-    memory_index: DefaultDict[str, List[int]]
-    memory_index_positional: DefaultDict[str, DefaultDict[str, List[int]]]
-    document_frequency: DefaultDict[str, List[int]]
+    # the positional inverted index needs a different structure to store
+    # positions
+    inverted_index: DefaultDict[str, List[int]]
+    inverted_index_positional: DefaultDict[str, DefaultDict[str, List[int]]]
+    
+    # contains for each term its document frequency and file number of the
+    # final index blocks
+    master_index: DefaultDict[str, List[int]]
+    
+    # contains the correspondence of surogate keys to natural keys (the 
+    # hexadecimal keys from the data source)
     doc_keys: Dict[int, str]
     
+    # TODO: variables here that aren't initialized and used yet
     nr_postings: int
     nr_indexed_docs: int
     indexing_time: int
@@ -28,20 +35,18 @@ class Indexer:
     index_searcher_start_time: int
     
     def __init__(self, tokenizer: Tokenizer,
-                 nr_postings_per_temp_block: int = 1000000) -> None:
-        maxInt = 10000000
-        field_size_limit(maxInt)
+                 max_postings_per_temp_block: int = 1000000) -> None:
+        field_size_limit(10000000)
         self.tokenizer = tokenizer
-        self.nr_postings_per_temp_block = nr_postings_per_temp_block
+        self.max_postings_per_temp_block = max_postings_per_temp_block
         self.block_posting_count = 0
         
         if self.tokenizer.use_positions:
-            self.memory_index_positional = defaultdict(lambda: 
+            self.inverted_index_positional = defaultdict(lambda: 
                                                        defaultdict(lambda: []))
         else:
-            self.memory_index = defaultdict(list)
-        
-        self.document_frequency = defaultdict(list)
+            self.inverted_index = defaultdict(list)
+        self.master_index = defaultdict(lambda: [0, 0])
         self.doc_keys = {}
         
         # TODO: make an initialization method to reset everything that can't
@@ -49,11 +54,11 @@ class Indexer:
         # instance
         self.initialize_statistics()
     
-    def get_memory_index(self):
+    def get_inverted_index(self):
         if self.tokenizer.use_positions:
-            return self.memory_index_positional
+            return self.inverted_index_positional
         else:
-            return self.memory_index
+            return self.inverted_index
 
     def index_doc(self, doc_id, doc_body) -> None:
         tokens = self.tokenizer.tokenize(doc_body)
@@ -64,11 +69,11 @@ class Indexer:
         
         for token in tokens:
             if self.tokenizer.use_positions:
-                self.get_memory_index()[token][doc_id] = tokens[token]
+                self.get_inverted_index()[token][doc_id] = tokens[token]
             else:
-                self.get_memory_index()[token].append(doc_id)
+                self.get_inverted_index()[token].append(doc_id)
 
-    # All index files will be placed in the index/data_source_filename
+    # all index files will be placed in the index/data_source_filename
     # subfolder
     def index_data_source(self, data_source_path: str) -> None:
         self.initialize_statistics()
@@ -87,7 +92,7 @@ class Indexer:
             for doc in data_reader:
                 
                 # condition to dump index block to disk
-                if self.block_posting_count > self.nr_postings_per_temp_block:
+                if self.block_posting_count > self.max_postings_per_temp_block:
                     
                     self.nr_temp_index_segments += 1
                     block_file_path = '{}/TempBlock{}.tsv'.format(
@@ -98,9 +103,9 @@ class Indexer:
                 doc_id, doc_body = self.parse_doc_from_data_source(doc)
                 self.index_doc(doc_id, doc_body)
             
-            # If the memory wasn't exceeded and the index isn't empty, make a
+            # if the maximum wasn't exceeded and the index isn't empty, make a
             # final dump to disk
-            if len(self.get_memory_index().keys()) > 0:
+            if len(self.get_inverted_index().keys()) > 0:
                 
                 self.nr_temp_index_segments += 1
                 block_file_path = '{}/TempBlock{}.tsv'.format(
@@ -109,7 +114,9 @@ class Indexer:
                 self.dump_index_to_disk(block_file_path)
             
         self.merge_index_blocks(index_folder)
-        self.dump_doc_frequency(index_folder)
+        
+        self.dump_master_index(index_folder)
+        
         self.dump_doc_keys(index_folder)
 
     # fields other than reviewid are concatenated separated by spaces, as the
@@ -146,7 +153,7 @@ class Indexer:
                   newline='') as block_file:
             block_writer = writer(block_file, delimiter='\t')
             
-            ordered_terms = list(self.get_memory_index().keys())
+            ordered_terms = list(self.get_inverted_index().keys())
             list.sort(ordered_terms)
             for block_term in ordered_terms:
                 block_writer.writerow(
@@ -154,15 +161,15 @@ class Indexer:
         
         self.block_posting_count = 0
         
-        self.get_memory_index().clear()
+        self.get_inverted_index().clear()
     
     def parse_index_term_for_dumping(self, term: str) -> List[str]:
         row = [term]
         
-        for posting in self.get_memory_index()[term]:
+        for posting in self.get_inverted_index()[term]:
             if self.tokenizer.use_positions:
                 positions_str = ','.join([str(i) for i in 
-                                  self.get_memory_index()[term][posting]])
+                                  self.get_inverted_index()[term][posting]])
                 row.append(str(posting) + ':' + positions_str)
             else:
                 row.append(str(posting))
@@ -171,61 +178,107 @@ class Indexer:
         
     def merge_index_blocks(self, index_blocks_folder: str) -> None:
         file_path_list = []
-        temp_merge_dict = defaultdict(dict)
         last_term_list = []
-        for block_number in range(1, 1 + self.nr_temp_index_segments):
+        
+        # temporary dictionary of terms that were read from each temporary
+        # index block. The key is the block number while the value is its index
+        # as a dictionary
+        temp_merge_dict = defaultdict(dict)
+        
+        # prepare list of block file paths
+        for block_number in range(1, self.nr_temp_index_segments + 1):
+            
             file_path_list.append(
                 '{}/TempBlock{}.tsv'.format(index_blocks_folder, block_number))
+            
         with ExitStack() as stack:
+            
             block_files = [stack.enter_context(open(file_path)) 
                            for file_path in file_path_list]
             file_readers = [reader(block_file, delimiter='\t') 
                             for block_file in block_files]
             
-            max_terms_per_block = int((self.nr_postings_per_temp_block 
-                                       / self.nr_temp_index_segments) * 0.7)
+            # the maximum number of postings read per block is 70% of the total
+            # divided by the number of temporary index blocks
+            max_postings_read_per_block = int((self.max_postings_per_temp_block 
+                                        / self.nr_temp_index_segments) * 0.7)
             
-            nr_main_index_blocks = 1
+            nr_final_index_blocks = 1
             self.block_posting_count = 0
             nr_merged_postings = 0
+            
             while(nr_merged_postings < self.nr_postings):
                 
                 last_term_list.clear()
                 
+                # read terms from each temporary index block until the maximum
+                # number of postings is exceeded
                 for block_nr in range(0, self.nr_temp_index_segments):
                     
-                    for row in islice(file_readers[block_nr], max_terms_per_block):
-                    # for row in islice(file_readers[block_nr], 10):
-                        
+                    nr_postings_read = 0
+                    while nr_postings_read < max_postings_read_per_block:
+                        try:
+                            row = next(file_readers[block_nr])
+                        except StopIteration:
+                            break
                         term, value = self.parse_index_file_row(row)
                         temp_merge_dict[block_nr + 1][term] = value
+                        nr_postings_read += len(value)
                     
                     last_term_list.append(term)
                 
+                # of the last terms read on each block, the lexicographically
+                # lowest term will be the last to be merged, while the others
+                # remain in memory for the next iteration
                 last_term_list.sort()
                 last_term_to_merge = last_term_list[0]
                 
+                # merge on memory all terms in the temporary dictionary of read 
+                # terms from each block that are ready to be merged
                 for block_nr in range(1, self.nr_temp_index_segments + 1):
-                    block_keys = list(temp_merge_dict[block_nr].keys())
-                    for term in block_keys:
+                    
+                    block_terms = list(temp_merge_dict[block_nr].keys())
+                    
+                    for term in block_terms:
+                        
                         if term <= last_term_to_merge:
+                            
+                            nr_postings_for_term = len(temp_merge_dict[block_nr][term])
+                            self.block_posting_count += nr_postings_for_term
                             if self.tokenizer.use_positions:
+                                
                                 posting_dict = temp_merge_dict[block_nr].pop(term)
                                 for posting in posting_dict:
-                                    self.get_memory_index()[term][posting] = posting_dict[posting]
+                                    self.get_inverted_index()[term][posting] = posting_dict[posting]
+                            
                             else:
-                                self.get_memory_index()[term] += temp_merge_dict[block_nr].pop(term)
-                            nr_postings_for_term = len(self.get_memory_index()[term])
+                                
+                                self.get_inverted_index()[term] += temp_merge_dict[block_nr].pop(term)
+                            
+                            # print(block_nr, term, nr_postings_for_term)
                             nr_merged_postings += nr_postings_for_term
-                            self.block_posting_count += nr_postings_for_term
-                            self.document_frequency[term] = [nr_postings_for_term, nr_main_index_blocks]
+                            # self.master_index[term] = [nr_postings_for_term, nr_final_index_blocks]
+                            self.master_index[term][0] += nr_postings_for_term
+                            self.master_index[term][1] = nr_final_index_blocks
                 
-                if self.block_posting_count >= self.nr_postings_per_temp_block:
+                # print(self.block_posting_count, self.max_postings_per_temp_block, max_postings_read_per_block)
+                # print(nr_merged_postings, self.nr_postings)
+                # dump to disk if the number of postings on the final index on
+                # memory exceeds the maximum per block
+                if self.block_posting_count >= self.max_postings_per_temp_block:
                     block_file_path = '{}/PostingIndexBlock{}.tsv'.format(
                         index_blocks_folder, 
-                        nr_main_index_blocks)
+                        nr_final_index_blocks)
                     self.dump_index_to_disk(block_file_path)
-                    nr_main_index_blocks += 1
+                    nr_final_index_blocks += 1
+            
+            # if the maximum wasn't exceeded and the index isn't empty, make a
+            # final dump to disk
+            if len(self.get_inverted_index().keys()) > 0:
+                block_file_path = '{}/PostingIndexBlock{}.tsv'.format(
+                    index_blocks_folder, 
+                    nr_final_index_blocks)
+                self.dump_index_to_disk(block_file_path)
 
     # TODO: ordering?
     def dump_doc_keys(self, index_folder_path: str) -> None:
@@ -234,7 +287,7 @@ class Indexer:
         with open(file_path, mode='wt', encoding='utf8', 
                   newline='') as doc_keys_file:
             file_writer = writer(doc_keys_file, delimiter='\t')
-            # ordered_terms = list(self.get_memory_index().keys())
+            # ordered_terms = list(self.get_inverted_index().keys())
             # list.sort(ordered_terms)
             for key in self.doc_keys:
                 file_writer.writerow([key, self.doc_keys[key]])
@@ -246,7 +299,7 @@ class Indexer:
 
             for row in data_reader:
                 term, value = self.parse_index_file_row(row)
-                self.get_memory_index()[term] = value
+                self.get_inverted_index()[term] = value
 
     def parse_index_file_row(self, row: List[str]):
         term = row[0]
@@ -262,13 +315,16 @@ class Indexer:
             value = list(map(int, posting_str_list))
         return term, value
 
-    def dump_doc_frequency(self, index_folder_path):
+    def dump_master_index(self, index_folder_path):
         file_path = index_folder_path + '/MasterIndex.tsv'
         
         with open(file_path, mode='wt', encoding='utf8', 
                   newline='') as master_index_file:
             file_writer = writer(master_index_file, delimiter='\t')
-            for key in self.document_frequency:
+            keys = list(self.master_index.keys())
+            list.sort(keys)
+            keys.sort()
+            for key in keys:
                 file_writer.writerow([key, 
-                                      self.document_frequency[key][0],
-                                      self.document_frequency[key][1]])
+                                      self.master_index[key][0],
+                                      self.master_index[key][1]])
