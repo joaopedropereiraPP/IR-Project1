@@ -72,11 +72,11 @@ python3 src/main.py --data_path (path) --nostopwords
 Four samples were considered which are available at https://s3.amazonaws.com/amazon-reviews-pds/readme.html, with default values for all program parameters.
 
 | Data source | Nr. of indexed documents | Nr. of postings | Vocabulary size | Total indexing time (s) | Total index size on disk (MB) | Nr. of temporary index segments | Time to set up a query searcher (s) |
-|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
-|amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz|145431|3867358|145431|22.239181|29.23137|4|0.084675|
-|amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz|1688884|33489189|1688884|207.690644|299.375435|34|1.181760|
-|amazon_reviews_us_Music_v1_00.tsv.gz|4751577|207067100|4751577|1434.355646|1786.479314|208|5.507720|
-|amazon_reviews_us_Books_v1_00.tsv.gz|10319090|367606263|10319090|2704.774763|3225.02682|368|7.410154|
+|:---------------------------------------------------:|:-------:|:-------:|:-------:|:---------:|:---------:|:-:|:------:|
+|amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz   |145431   |3854249  |145431   |28.789505  |29.23137   |4  |0.069073|
+|amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz|1688884  |33469012 |1688884  |296.486462 |299.375435 |34 |1.112995|
+|amazon_reviews_us_Music_v1_00.tsv.gz                 |4751577  |206911234|4751577  |1678.897414|1766.005263|207|3.102635|
+|amazon_reviews_us_Books_v1_00.tsv.gz                 |10319090 |367661536|10319090 |2981.774763|3202.133845|368|4.368793|
 
 These results were produced on a machine with the following specifications:
 * CPU: AMD Ryzen 5 4600H with Radeon Graphics
