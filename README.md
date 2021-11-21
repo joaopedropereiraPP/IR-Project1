@@ -6,9 +6,11 @@ Create a document indexer using the SPIMI approach and a basic searching mechani
 
 ## Design
 
-The application was completely developed in Python, using an object-oriented approach, to better guarantee encapsulation and modularity, with type annotations for all class members and methods to improve readability. It has the option of indexing with term positions, though this is disabled by default.
+The application was completely developed in Python, using an object-oriented approach, to better guarantee encapsulation and modularity, with type annotations for all class members and methods to improve readability and unit tests for classes. It has the option of indexing with term positions, though this is disabled by default.
 
-The SPIMI indexing limit per block implemented is based on number of postings, while the tokenizer implementation performs string preprocessing, stopword removal, word size filtering and stemming, which are all done in a single pass to prevent iterating each document multiple times.
+The SPIMI indexing limit per block that was implemented is based on number of postings, while the tokenizer implementation performs string preprocessing, stopword removal, word size filtering and stemming, which are all done in a single pass to prevent iterating each document multiple times.
+
+It is prepared to parse Amazon review data files as the collection of documents to index, which follow the structure described on the beginning of this document: https://s3.amazonaws.com/amazon-reviews-pds/tsv/index.txt. 
 
 All index files are stored uncompressed as TSV files on the `index/data_source_name` subfolder, with the following structure:
 * PostingIndex#.tsv - the final index files. Multiple files are created if the SPIMI posting limit per block is reached, where `'#'` is the block number. It contains the term on the first column of each row, and a posting on each subsequent column, as its document ID. When positions are enabled, each posting will be a string containing the document ID followed by the character `':'` and the list of positions on the document separated by `','`.
@@ -18,48 +20,49 @@ All index files are stored uncompressed as TSV files on the `index/data_source_n
 
 ## Prerequisites
 
-PyStemmer module is required (https://github.com/snowballstem/pystemmer), which is a C implementation of snowballstemmer, and was chosen due to its improved performance compared to the default implementation of snowballstemmer.
+The program was developed using Python 3.8, and in addition the PyStemmer module is required (https://github.com/snowballstem/pystemmer), which is a C implementation of snowballstemmer, and was chosen due to its improved performance compared to the default implementation of snowballstemmer.
 Install it with the command:
 ```
 pip install PyStemmer
 ```
 ## Usage
 ```
-usage: python3 src/main.py [-h] --data_path path to data file (.gz)) [--nostopwords] [--stopwords (path to stopwords list)] [--word_size (integer number] [--no_word_size] [--no_stemmer] [--use_positions] [--max_post]
+usage: main.py [-h] --data_path path to data file (.gz)) [--nostopwords] [--stopwords (path to stopwords list)]
+               [--word_size (integer number] [--no_word_size] [--no_stemmer] [--use_positions] [--max_post MAX_POST]
 
 optional arguments:
   -h, --help            show this help message and exit
   --data_path (path to data file (.gz))
                         Set the path to the data
-  --nostopwords         Set not to use Stop Words List
+  --nostopwords         Disable stop words
   --stopwords (path to stopwords list)
-                        Set the path to Stop Words List
+                        Set the path to stop words List
   --word_size (integer number)
-                        Set the minimum words size
-  --no_word_size        Set not to use minimum words size
-  --no_stemmer          Set not to use Stemmer
-  --use_positions       Set to use positions
-  --max_post MAX_POST   Set the maximum postings per temp block
+                        Set the maximum for the word size filter
+  --no_word_size        Disable word size filter
+  --no_stemmer          Disable stemmer
+  --use_positions       Enable positions indexing
+  --max_post MAX_POST   Set the maximum postings per block
 ```
 
-* The data_path option is the path to the data file to be indexed.
+* The data_path option is the path to the Amazon review data file to be indexed.
 * The nostopwords option disables stopwords.
-* The stopwords option sets the path to the stopwords list, default the list in `content/stopwords.txt` is used, which is from http://www.search-engines-book.com/data/stopwords.
-* The word_size option sets the word size filter value, defaut is 3.
+* The stopwords option sets the path to the stopwords list, which should be a simple text file with a stop word on each row. The default is the file in `content/stopwords.txt`, which was taken from http://www.search-engines-book.com/data/stopwords.
+* The word_size option sets the word size filter value, words with smaller or equal size than the value set here are filtered. The defaut is 3.
 * The no_word_size option disables the word size filter.
-* The no_stemmer option is disables stemming.
+* The no_stemmer option disables stemming.
 * The use_positions option enables/disables term positions on the index, default is off.
 
-After running the program the data file starts to be indexed using the SPIMI approach and the index files are created as described in the Design section. When it is done some statistics on the process are returned and the user is asked to enter the search term, for which the document frequency and final index file block number in which its postings are contained is returned.
+After running the program the data file starts to be indexed using the SPIMI approach and the index files are created as described in the Design section. When it is done some statistics on the process are returned and the user is asked to enter the search term, for which the document frequency and final index file block number in which its postings are contained is returned, that is, the `#` in PostingIndex#.tsv, as described previously.
 
 ## Example
 
-By default
+Using default parameters:
 ```
 python3 src/main.py --data_path (path)
 ```
 
-With new data file and without stopwords list
+With new data file and stopwords disabled:
 ```
 python3 src/main.py --data_path (path) --nostopwords
 ```
@@ -72,13 +75,16 @@ Four samples were considered which are available at https://s3.amazonaws.com/ama
 |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
 |amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz|145431|3867358|145431|22.239181|29.23137|4|0.084675|
 |amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz|1688884|33489189|1688884|207.690644|299.375435|34|1.181760|
-|amazon_reviews_us_Music_v1_00.tsv.gz|0|207067100|4751577|1434.355646|1786.479314|208|5.507720|
+|amazon_reviews_us_Music_v1_00.tsv.gz|4751577|207067100|4751577|1434.355646|1786.479314|208|5.507720|
 |amazon_reviews_us_Books_v1_00.tsv.gz|10319090|367606263|10319090|2704.774763|3225.02682|368|7.410154|
+
+These results were produced on a machine with the following specifications:
+* CPU: AMD Ryzen 5 4600H with Radeon Graphics
+* RAM: 8GB
+* Storage: SSD - Samsung MZALQ512HALU-000L2
 
 ## Authors
 
-João Pedro Pereira - 106346 [GitHub](https://github.com/joaopedropereiraPP)  
-Ivo Félix - 109641 [GitHub](https://github.com/IvoFelix) 
+Ivo Félix - 109641 [GitHub](https://github.com/IvoFelix)
 
-
-
+João Pedro Pereira - 106346 [GitHub](https://github.com/joaopedropereiraPP)
