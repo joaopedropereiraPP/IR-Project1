@@ -72,7 +72,7 @@ Four samples were considered which are available at https://s3.amazonaws.com/ama
 |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
 |amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz|145431|3867358|145431|22.239181|29.23137|4|0.084675|
 |amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz|1688884|33489189|1688884|207.690644|299.375435|34|1.181760|
-|amazon_reviews_us_Music_v1_00.tsv.gz|0|207067100|4751577|1434.355646|1786.479314|208|5.507720|
+|amazon_reviews_us_Music_v1_00.tsv.gz|4751577|207067100|4751577|1434.355646|1786.479314|208|5.507720|
 |amazon_reviews_us_Books_v1_00.tsv.gz|10319090|367606263|10319090|2704.774763|3225.02682|368|7.410154|
 
 ## Authors
