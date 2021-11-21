@@ -47,8 +47,8 @@ class Tokenizer:
     #TODO: improve tokenizer with more combinations
     def preprocess_input(self, input_string: str) -> List[str]:
         word_list = sub("\-+","", input_string)
-        word_list = sub("<br />"," ", word_list)
-        word_list = sub("[^0-9a-zA-Z]+"," ", word_list).lower().split(" ")
+        # word_list = sub("<br />"," ", word_list)
+        word_list = sub("<br />|[^0-9a-zA-Z]+"," ", word_list).lower().split(" ")
         
         return word_list
     
