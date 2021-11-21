@@ -16,8 +16,7 @@ class Main:
     tokenizer: Tokenizer     
     indexer: Indexer
 
-    def __init__(self) :
-
+    def __init__(self):
         # default arguments
         self.data_path = ""
         self.stopwords_path = 'content/stopwords.txt'
@@ -28,42 +27,41 @@ class Main:
         self.parser = ArgumentParser()
         self.tokenizer = Tokenizer(stopwords_path = self.stopwords_path, 
                                 stemmer_enabled = self.stemmer_enabled, 
-                                size_filter=self.minimum_word_size, 
-                                use_positions=self.use_positions)
+                                size_filter = self.minimum_word_size, 
+                                use_positions = self.use_positions)
         self.indexer = Indexer(tokenizer = self.tokenizer, max_postings_per_temp_block = self.max_post)
  
     def parse_args(self):
-        
         parser = ArgumentParser()
         # path to new data file
         parser.add_argument("--data_path", help="Set the path to the data", required=True, 
                             type=str, metavar="(path to data file (.gz))")
         # do not use stopwords list
-        parser.add_argument("--nostopwords", help="Do not use Stop Words",
+        parser.add_argument("--nostopwords", help="Disable stop words",
                             action="store_false")
         # path to new stopwords
-        parser.add_argument("--stopwords", help="Set the path to Stop Words List", 
+        parser.add_argument("--stopwords", help="Set the path to stop words List", 
                             type=str, metavar="(path to stopwords list)")
         # minimum word size
-        parser.add_argument("--word_size", help="Set the minimum words size", 
+        parser.add_argument("--word_size", help="Set the maximum for the word size filter", 
                             type=int, metavar="(integer number)")
         # no minimum word size
-        parser.add_argument("--no_word_size", help="Set not to use minimum words size",
+        parser.add_argument("--no_word_size", help="Disable word size filter",
                             action="store_false")
         # do not use stemmer
-        parser.add_argument("--no_stemmer", help="Set not to use Stemmer",
+        parser.add_argument("--no_stemmer", help="Disable stemmer",
                             action="store_false")
         # do not use positions
-        parser.add_argument("--use_positions", help="Set to use positions",
+        parser.add_argument("--use_positions", help="Enable positions indexing",
                             action="store_true")
-
-        parser.add_argument("--max_post", help="Set the maximum postings per temp block",
+        # maximum postings per block for the SPIMI
+        parser.add_argument("--max_post", help="Set the maximum postings per block",
                             type=int)
         return parser
 
     def check_arguments(self, parser, args):
 
-        if args.data_path :
+        if args.data_path:
             self.data_path = args.data_path
             if not path.exists(self.data_path) or not self.data_path.endswith('.gz'):
                 print("File does not exist or does not have the correct extension! ")
@@ -117,9 +115,9 @@ class Main:
 
         query = Query(stopwords_path = self.stopwords_path, 
                         stemmer_enabled = self.stemmer_enabled, 
-                        size_filter=self.minimum_word_size, 
-                        use_positions=self.use_positions,
-                        data_path=self.data_path)
+                        size_filter = self.minimum_word_size, 
+                        use_positions = self.use_positions,
+                        data_path = self.data_path)
         
         initial_time = time()
         
