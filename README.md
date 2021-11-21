@@ -77,8 +77,5 @@ Four samples were considered which are available at https://s3.amazonaws.com/ama
 
 ## Authors
 
-João Pedro Pereira - 106346 [GitHub](https://github.com/joaopedropereiraPP)  
-Ivo Félix - 109641 [GitHub](https://github.com/IvoFelix) 
-
-
-
+Ivo Félix - 109641 [GitHub](https://github.com/IvoFelix)
+João Pedro Pereira - 106346 [GitHub](https://github.com/joaopedropereiraPP)
