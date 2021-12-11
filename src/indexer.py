@@ -11,6 +11,7 @@ from glob import glob
 class Indexer:
     tokenizer: Tokenizer
     max_postings_per_temp_block: int
+    index_type: str
     
     block_posting_count: int
     
@@ -36,27 +37,36 @@ class Indexer:
     nr_temp_index_segments: int
     
     def __init__(self, tokenizer: Tokenizer,
-                 max_postings_per_temp_block: int = 1000000) -> None:
+                 max_postings_per_temp_block: int = 1000000, index_type: str = 'raw') -> None:
         field_size_limit(10000000)
         self.tokenizer = tokenizer
         self.max_postings_per_temp_block = max_postings_per_temp_block
         self.block_posting_count = 0
         
-        if self.tokenizer.use_positions:
-            self.inverted_index_positional = defaultdict(lambda: 
-                                                       defaultdict(lambda: []))
-        else:
-            self.inverted_index = defaultdict(list)
+        self.index_type = index_type
+        self.initialize_index()
+
         self.master_index = defaultdict(lambda: [0, 0])
         self.doc_keys = {}
         
         self.initialize_statistics()
     
     def get_inverted_index(self):
-        if self.tokenizer.use_positions:
-            return self.inverted_index_positional
-        else:
-            return self.inverted_index
+        if self.index_type == 'raw':
+            if self.tokenizer.use_positions:
+                return self.inverted_index_positional
+            else:
+                return self.inverted_index
+        elif self.index_type == 'lnc.ltc':
+            if self.tokenizer.use_positions:
+                pass
+            else:
+                pass
+        elif self.index_type == 'bm25':
+            if self.tokenizer.use_positions:
+                pass
+            else:
+                pass
     
     def initialize_statistics(self) -> None:
         self.nr_postings = 0
@@ -79,7 +89,7 @@ class Indexer:
         return statistics
 
     # tokenize and index document
-    def index_doc(self, doc_id, doc_body) -> None:
+    def parse_datasource_doc_to_memory(self, doc_id, doc_body) -> None:
         tokens = self.tokenizer.tokenize(doc_body)
         
         nr_tokens = len(tokens)
@@ -87,10 +97,30 @@ class Indexer:
         self.block_posting_count += nr_tokens
         
         for token in tokens:
-            if self.tokenizer.use_positions:
-                self.get_inverted_index()[token][doc_id] = tokens[token]
-            else:
-                self.get_inverted_index()[token].append(doc_id)
+
+            if self.index_type == 'raw':
+                if self.tokenizer.use_positions:
+                    self.get_inverted_index()[token][doc_id] = tokens[token]
+                else:
+                    self.get_inverted_index()[token].append(doc_id)
+            elif self.index_type == 'lnc.ltc':
+                if self.tokenizer.use_positions:
+                    pass
+                else:
+                    pass
+            elif self.index_type == 'bm25':
+                if self.tokenizer.use_positions:
+                    pass
+                else:
+                    pass
+
+    def measure_index_file_size(self, index_folder: str):
+        file_list = glob(index_folder + '/PostingIndexBlock*.tsv')
+        file_list.append(index_folder + '/MasterIndex.tsv')
+        file_list.append(index_folder + '/DocKeys.tsv')
+        for file_path in file_list:
+            self.index_size += path.getsize(file_path)
+        self.index_size = self.index_size / 1000000.0
 
     # start indexing a data source, the index files will be placed in the 
     # index/data_source_filename subfolder
@@ -118,8 +148,12 @@ class Indexer:
             data_file.readline()
             
             for doc in data_reader:
+
+                # index document to memory
+                doc_id, doc_body = self.parse_doc_from_data_source(doc)
+                self.parse_datasource_doc_to_memory(doc_id, doc_body)
                 
-                # condition to dump index block to disk
+                # dump temporary index block to disk if maximum postings is exceeded
                 if self.block_posting_count > self.max_postings_per_temp_block:
                     
                     self.nr_temp_index_segments += 1
@@ -127,9 +161,6 @@ class Indexer:
                         index_folder, 
                         self.nr_temp_index_segments)
                     self.dump_index_to_disk(block_file_path)
-
-                doc_id, doc_body = self.parse_doc_from_data_source(doc)
-                self.index_doc(doc_id, doc_body)
             
             # if the maximum wasn't exceeded and the index isn't empty, make a
             # final dump to disk
@@ -151,12 +182,7 @@ class Indexer:
         
         self.indexing_time = end_time - start_time
         
-        file_list = glob(index_folder + '/PostingIndexBlock*.tsv')
-        file_list.append(index_folder + '/MasterIndex.tsv')
-        file_list.append(index_folder + '/DocKeys.tsv')
-        for file_path in file_list:
-            self.index_size += path.getsize(file_path)
-        self.index_size = self.index_size / 1000000.0
+        self.measure_index_file_size(index_folder)
         
         self.vocabulary_size = len(self.doc_keys)
 
@@ -206,7 +232,7 @@ class Indexer:
                             row = next(file_readers[block_nr])
                         except StopIteration:
                             break
-                        term, value = self.parse_index_file_row(row)
+                        term, value = self.parse_disk_term_to_memory(row)
                         temp_merge_dict[block_nr + 1][term] = value
                         nr_postings_read += len(value)
                     
@@ -230,19 +256,11 @@ class Indexer:
                             
                             nr_postings_for_term = len(temp_merge_dict[block_nr][term])
                             self.block_posting_count += nr_postings_for_term
-                            if self.tokenizer.use_positions:
-                                
-                                posting_dict = temp_merge_dict[block_nr].pop(term)
-                                for posting in posting_dict:
-                                    self.get_inverted_index()[term][posting] = posting_dict[posting]
-                            
-                            else:
-                                
-                                self.get_inverted_index()[term] += temp_merge_dict[block_nr].pop(term)
+                            postings = temp_merge_dict[block_nr].pop(term)
+                            self.merge_terms_in_memory(term, postings)
                             
                             nr_merged_postings += nr_postings_for_term
-                            self.master_index[term][0] += nr_postings_for_term
-                            self.master_index[term][1] = nr_final_index_blocks
+                            self.add_term_to_master_index(term, nr_postings_for_term, nr_final_index_blocks)
                 
                 # dump to disk if the number of postings on the final index on
                 # memory exceeds the maximum per block
@@ -268,22 +286,35 @@ class Indexer:
             data_reader = reader(data_file, delimiter='\t')
 
             for row in data_reader:
-                term, value = self.parse_index_file_row(row)
+                term, value = self.parse_disk_term_to_memory(row)
                 self.get_inverted_index()[term] = value
 
     # process the contents of an index file for indexing in memory again
-    def parse_index_file_row(self, row: List[str]):
+    def parse_disk_term_to_memory(self, row: List[str]):
         term = row[0]
         posting_str_list = row[1:]
-        if self.tokenizer.use_positions:
-            value = defaultdict(lambda: [])
-            for posting_str in posting_str_list:
-                doc_id, positions_str = posting_str.split(':')
-                positions_list = list(map(int, 
-                                          positions_str.split(',')))
-                value[doc_id] = positions_list
-        else:
-            value = list(map(int, posting_str_list))
+
+        if self.index_type == 'raw':
+            if self.tokenizer.use_positions:
+                value = defaultdict(lambda: [])
+                for posting_str in posting_str_list:
+                    doc_id, positions_str = posting_str.split(':')
+                    positions_list = list(map(int, 
+                                            positions_str.split(',')))
+                    value[doc_id] = positions_list
+            else:
+                value = list(map(int, posting_str_list))
+        elif self.index_type == 'lnc.ltc':
+            if self.tokenizer.use_positions:
+                pass
+            else:
+                pass
+        elif self.index_type == 'bm25':
+            if self.tokenizer.use_positions:
+                pass
+            else:
+                pass
+
         return term, value
 
     # process the contents of an Amazon review data file for indexing. 
@@ -300,16 +331,27 @@ class Indexer:
 
     # process the contents of a term from the index on memory for storing on
     # disk
-    def parse_index_term_for_dumping(self, term: str) -> List[str]:
+    def parse_memory_term_to_disk(self, term: str) -> List[str]:
         row = [term]
         
         for posting in self.get_inverted_index()[term]:
-            if self.tokenizer.use_positions:
-                positions_str = ','.join([str(i) for i in 
-                                  self.get_inverted_index()[term][posting]])
-                row.append(str(posting) + ':' + positions_str)
-            else:
-                row.append(str(posting))
+            if self.index_type == 'raw':
+                if self.tokenizer.use_positions:
+                    positions_str = ','.join([str(i) for i in 
+                                    self.get_inverted_index()[term][posting]])
+                    row.append(str(posting) + ':' + positions_str)
+                else:
+                    row.append(str(posting))
+            elif self.index_type == 'lnc.ltc':
+                if self.tokenizer.use_positions:
+                    pass
+                else:
+                    pass
+            elif self.index_type == 'bm25':
+                if self.tokenizer.use_positions:
+                    pass
+                else:
+                    pass
         
         return row
 
@@ -327,7 +369,7 @@ class Indexer:
             list.sort(ordered_terms)
             for block_term in ordered_terms:
                 block_writer.writerow(
-                    self.parse_index_term_for_dumping(block_term))
+                    self.parse_memory_term_to_disk(block_term))
         
         self.block_posting_count = 0
         
@@ -362,3 +404,48 @@ class Indexer:
             # list.sort(ordered_terms)
             for key in self.doc_keys:
                 file_writer.writerow([key, self.doc_keys[key]])
+
+    def merge_terms_in_memory(self, term, postings):
+        if self.index_type == 'raw':
+            if self.tokenizer.use_positions:
+                self.get_inverted_index()[term].update(postings)
+            else:
+                self.get_inverted_index()[term] += postings
+        elif self.index_type == 'lnc.ltc':
+            if self.tokenizer.use_positions:
+                pass
+            else:
+                pass
+        elif self.index_type == 'bm25':
+            if self.tokenizer.use_positions:
+                pass
+            else:
+                pass
+
+    def add_term_to_master_index(self, term, nr_postings_for_term, nr_final_index_blocks):
+
+        if self.index_type == 'raw':
+            self.master_index[term][0] += nr_postings_for_term
+            self.master_index[term][1] = nr_final_index_blocks
+        elif self.index_type == 'lnc.ltc':
+            pass
+        elif self.index_type == 'bm25':
+            pass
+
+    def initialize_index(self):
+        if self.index_type == 'raw':
+            if self.tokenizer.use_positions:
+                self.inverted_index_positional = defaultdict(lambda: 
+                                                        defaultdict(lambda: []))
+            else:
+                self.inverted_index = defaultdict(list)
+        elif self.index_type == 'lnc.ltc':
+            if self.tokenizer.use_positions:
+                pass
+            else:
+                pass
+        elif self.index_type == 'bm25':
+            if self.tokenizer.use_positions:
+                pass
+            else:
+                pass
