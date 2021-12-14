@@ -2,3 +2,5 @@
 index/*
 !index/amazon_reviews_us_Digital_Video_Games_v1_00_sample_reference/
 content/*.gz
+.vscode
+.ropeproject
