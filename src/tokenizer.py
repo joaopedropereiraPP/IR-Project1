@@ -14,6 +14,7 @@ class Tokenizer:
     # A size_filter of 0 disables size filter
     def __init__(self, stopwords_path: str = 'content/stopwords.txt',  stemmer_enabled: bool = True, size_filter: int = 3, use_positions: bool = False, index_type = 'raw') -> None:
         
+        self.stopwords_path = stopwords_path
         if stopwords_path != '':
             with open(stopwords_path, 'r') as stopwords_file:
                 self.stopwords = set(stopwords_file.read().split('\n'))

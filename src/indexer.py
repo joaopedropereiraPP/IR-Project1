@@ -60,6 +60,8 @@ class Indexer:
 
         self.logarithm = {}
 
+        
+
     def get_inverted_index(self):
         if self.index_type == 'raw':
             if self.tokenizer.use_positions:
@@ -140,6 +142,9 @@ class Indexer:
         if not path.exists(index_folder):
             makedirs(index_folder)
 
+        #metadados
+        self.configurations(index_folder)
+
         # define the dialect used by csv.reader to correctly interpret amazon
         # review data files
         dialect = unix_dialect()
@@ -204,9 +209,10 @@ class Indexer:
         # index block. The key is the block number while the value is its index
         # as a dictionary
         temp_merge_dict = defaultdict(dict)
-
+        
         # prepare list of block file paths
         for block_number in range(1, self.nr_temp_index_segments + 1):
+            file_path_list.append('{}/TempBlock{}.tsv'.format(index_blocks_folder, block_number))
 
         self.to_merge = True
         with ExitStack() as stack:
@@ -483,3 +489,22 @@ class Indexer:
         if n not in self.logarithm:
             self.logarithm[n] = log10(n)
         return self.logarithm[n]
+
+    def configurations(self, index_folder_path):
+        file_path = index_folder_path + '/conf.tsv'
+
+        with open(file_path, mode='wt', encoding='utf8', newline='') as conf_file:
+            file_writer = writer(conf_file, delimiter='\t')
+            
+            file_writer.writerow(["Index Type",  str(self.tokenizer.index_type)])
+            file_writer.writerow(["Size Filter",  str(self.tokenizer.size_filter)])
+            file_writer.writerow(["Use Stemmer",  str(self.tokenizer.stemmer_enabled)])
+            file_writer.writerow(["Stopword path",  str(self.tokenizer.stopwords_path)])
+            file_writer.writerow(["Use Positions",  str(self.tokenizer.use_positions)])
+            
+
+        
+        
+        
+        
+        
