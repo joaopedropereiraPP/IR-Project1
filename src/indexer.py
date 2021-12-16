@@ -6,6 +6,8 @@ from glob import glob
 from os import makedirs, path
 from time import time
 from typing import DefaultDict, Dict, List, Tuple
+from bm25 import bm25
+from math import log10
 
 from tokenizer import Tokenizer
 
@@ -38,9 +40,7 @@ class Indexer:
     vocabulary_size: int
     nr_temp_index_segments: int
 
-    def __init__(self, tokenizer: Tokenizer,
-                 max_postings_per_temp_block: int = 1000000,
-                 index_type: str = 'raw') -> None:
+    def __init__(self, tokenizer: Tokenizer, max_postings_per_temp_block: int = 1000000, index_type: str = 'raw') -> None:
         field_size_limit(10000000)
         self.tokenizer = tokenizer
         self.max_postings_per_temp_block = max_postings_per_temp_block
@@ -54,6 +54,12 @@ class Indexer:
 
         self.initialize_statistics()
 
+        self.k = 1.2
+        self.b = 0.75
+        self.to_merge = False
+
+        self.logarithm = {}
+
     def get_inverted_index(self):
         if self.index_type == 'raw':
             if self.tokenizer.use_positions:
@@ -66,10 +72,9 @@ class Indexer:
             else:
                 pass
         elif self.index_type == 'bm25':
-            if self.tokenizer.use_positions:
-                pass
-            else:
-                pass
+            # inverted_index_positional is required for bm25 method
+            return self.inverted_index_positional
+
 
     def initialize_statistics(self) -> None:
         self.nr_postings = 0
@@ -94,10 +99,11 @@ class Indexer:
     # tokenize and index document
     def parse_datasource_doc_to_memory(self, doc_id, doc_body) -> None:
         tokens = self.tokenizer.tokenize(doc_body)
-
+        
         nr_tokens = len(tokens)
         self.nr_postings += nr_tokens
         self.block_posting_count += nr_tokens
+
 
         for token in tokens:
 
@@ -112,10 +118,8 @@ class Indexer:
                 else:
                     pass
             elif self.index_type == 'bm25':
-                if self.tokenizer.use_positions:
-                    pass
-                else:
-                    pass
+                # positions required
+                self.get_inverted_index()[token][doc_id] = tokens[token]
 
     def measure_index_file_size(self, index_folder: str):
         file_list = glob(index_folder + '/PostingIndexBlock*.tsv')
@@ -161,9 +165,7 @@ class Indexer:
                 if self.block_posting_count > self.max_postings_per_temp_block:
 
                     self.nr_temp_index_segments += 1
-                    block_file_path = '{}/TempBlock{}.tsv'.format(
-                        index_folder,
-                        self.nr_temp_index_segments)
+                    block_file_path = '{}/TempBlock{}.tsv'.format( index_folder, self.nr_temp_index_segments)
                     self.dump_index_to_disk(block_file_path)
 
             # if the maximum wasn't exceeded and the index isn't empty, make a
@@ -175,6 +177,9 @@ class Indexer:
                     index_folder,
                     self.nr_temp_index_segments)
                 self.dump_index_to_disk(block_file_path)
+
+        # update self.avdl
+        self.calculate_avdl()
 
         self.merge_index_blocks(index_folder)
 
@@ -203,9 +208,7 @@ class Indexer:
         # prepare list of block file paths
         for block_number in range(1, self.nr_temp_index_segments + 1):
 
-            file_path_list.append(
-                '{}/TempBlock{}.tsv'.format(index_blocks_folder, block_number))
-
+        self.to_merge = True
         with ExitStack() as stack:
 
             block_files = [stack.enter_context(open(file_path))
@@ -307,8 +310,7 @@ class Indexer:
                 value = defaultdict(lambda: [])
                 for posting_str in posting_str_list:
                     doc_id, positions_str = posting_str.split(':')
-                    positions_list = list(map(int,
-                                              positions_str.split(',')))
+                    positions_list = list(map(int, positions_str.split(',')))
                     value[doc_id] = positions_list
             else:
                 value = list(map(int, posting_str_list))
@@ -318,10 +320,12 @@ class Indexer:
             else:
                 pass
         elif self.index_type == 'bm25':
-            if self.tokenizer.use_positions:
-                pass
-            else:
-                pass
+            # Required Positions
+            value = defaultdict(lambda: [])
+            for posting_str in posting_str_list:
+                doc_id, positions_str = posting_str.split(':')
+                positions_list = list(map(int, positions_str.split(',')))
+                value[doc_id] = positions_list
 
         return term, value
 
@@ -330,10 +334,16 @@ class Indexer:
     # body of the document
     def parse_doc_from_data_source(self, doc: List[str]) -> Tuple[str, str]:
         doc_id = doc[2]
+        structure_doc_keys= []
         doc_body = '{} {} {}'.format(doc[5], doc[12], doc[13])
 
+        #structure_doc_keys [doc_id, doc_name, document_length]
+        structure_doc_keys.append(doc_id)
+        structure_doc_keys.append(doc[5])
+        structure_doc_keys.append(len(doc_body))
+
         self.nr_indexed_docs += 1
-        self.doc_keys[self.nr_indexed_docs] = doc_id
+        self.doc_keys[self.nr_indexed_docs] = structure_doc_keys
 
         return self.nr_indexed_docs, doc_body
 
@@ -341,13 +351,10 @@ class Indexer:
     # disk
     def parse_memory_term_to_disk(self, term: str) -> List[str]:
         row = [term]
-
         for posting in self.get_inverted_index()[term]:
             if self.index_type == 'raw':
                 if self.tokenizer.use_positions:
-                    positions_str = (','.join(
-                        [str(i) for i in
-                         self.get_inverted_index()[term][posting]]))
+                    positions_str = (','.join( [str(i) for i in self.get_inverted_index()[term][posting]]))
                     row.append(str(posting) + ':' + positions_str)
                 else:
                     row.append(str(posting))
@@ -357,11 +364,23 @@ class Indexer:
                 else:
                     pass
             elif self.index_type == 'bm25':
-                if self.tokenizer.use_positions:
-                    pass
+                if self.to_merge:
+                    #PROCESSING DATA TO MERGE WITH BM25
+                    if self.tokenizer.use_positions:
+                        dl = self.get_number_of_words_from_dockeys(int(posting))
+                        bm25_procedure = bm25(k = self.k, b= self.b, positions= self.get_inverted_index()[term][posting], dl=dl, avdl= self.avdl)
+                        row.append(str(posting) + ':' + bm25_procedure.bm25_with_positions())
+                    else:
+                        dl = self.get_number_of_words_from_dockeys(int(posting))
+                        bm25_procedure = bm25(k = self.k, b= self.b, positions= self.get_inverted_index()[term][posting], dl=dl, avdl= self.avdl)
+                        row.append(str(posting) + ':' + bm25_procedure.bm25_without_positions())
                 else:
-                    pass
-
+                    #PROCESSING DATA TO TEMPBLOCK
+                    
+                    positions_str = (','.join( [str(i) for i in self.get_inverted_index()[term][posting]]))
+                    row.append(str(posting) + ':' + positions_str)
+                    
+            #print("--------------------"+ str(row))
         return row
 
     # the resulting TSV file on disk will have a term on the first column of
@@ -370,15 +389,13 @@ class Indexer:
     # string containing the document ID followed by the character ':' and the
     # list of positions on the document separated by ','
     def dump_index_to_disk(self, file_path: str) -> None:
-        with open(file_path, mode='wt', encoding='utf8',
-                  newline='') as block_file:
+        with open(file_path, mode='wt', encoding='utf8', newline='') as block_file:
             block_writer = writer(block_file, delimiter='\t')
 
             ordered_terms = list(self.get_inverted_index().keys())
             list.sort(ordered_terms)
             for block_term in ordered_terms:
-                block_writer.writerow(
-                    self.parse_memory_term_to_disk(block_term))
+                block_writer.writerow(self.parse_memory_term_to_disk(block_term))
 
         self.block_posting_count = 0
 
@@ -390,29 +407,26 @@ class Indexer:
     def dump_master_index(self, index_folder_path):
         file_path = index_folder_path + '/MasterIndex.tsv'
 
-        with open(file_path, mode='wt', encoding='utf8',
-                  newline='') as master_index_file:
+        with open(file_path, mode='wt', encoding='utf8', newline='') as master_index_file:
             file_writer = writer(master_index_file, delimiter='\t')
             keys = list(self.master_index.keys())
             list.sort(keys)
             keys.sort()
             for key in keys:
-                file_writer.writerow([key,
-                                      self.master_index[key][0],
-                                      self.master_index[key][1]])
+                r = self.log(self.nr_indexed_docs) - self.log(self.master_index[key][0])
+                file_writer.writerow([key, r, self.master_index[key][1]])
 
     # the resulting TSV file on disk will have the surrogate key on each row,
     # followed by the natural key (hexadecimal) on the next column
     def dump_doc_keys(self, index_folder_path: str) -> None:
         file_path = index_folder_path + '/DocKeys.tsv'
 
-        with open(file_path, mode='wt', encoding='utf8',
-                  newline='') as doc_keys_file:
+        with open(file_path, mode='wt', encoding='utf8', newline='') as doc_keys_file:
             file_writer = writer(doc_keys_file, delimiter='\t')
             # ordered_terms = list(self.get_inverted_index().keys())
             # list.sort(ordered_terms)
             for key in self.doc_keys:
-                file_writer.writerow([key, self.doc_keys[key]])
+                file_writer.writerow([key, self.doc_keys[key][0], self.doc_keys[key][1], self.doc_keys[key][2]])
 
     def merge_terms_in_memory(self, term, postings):
         if self.index_type == 'raw':
@@ -426,15 +440,12 @@ class Indexer:
             else:
                 pass
         elif self.index_type == 'bm25':
-            if self.tokenizer.use_positions:
-                pass
-            else:
-                pass
+            #Required positions
+            #if self.tokenizer.use_positions:
+            self.get_inverted_index()[term].update(postings)
+        
 
-    def add_term_to_master_index(self,
-                                 term,
-                                 nr_postings_for_term,
-                                 nr_final_index_blocks):
+    def add_term_to_master_index(self, term, nr_postings_for_term, nr_final_index_blocks):
 
         if self.index_type == 'raw':
             self.master_index[term][0] += nr_postings_for_term
@@ -442,14 +453,33 @@ class Indexer:
         elif self.index_type == 'lnc.ltc':
             pass
         elif self.index_type == 'bm25':
-            pass
+            self.master_index[term][0] += nr_postings_for_term
+            self.master_index[term][1] = nr_final_index_blocks
 
     def initialize_index(self):
         if self.tokenizer.use_positions:
-            self.inverted_index_positional = (
-                    defaultdict(lambda: defaultdict(lambda: [])))
+            self.inverted_index_positional = (defaultdict(lambda: defaultdict(lambda: [])))
         else:
-            if self.index_type == 'raw':
+            if self.index_type == 'raw' :
                 self.inverted_index = defaultdict(list)
+            elif self.index_type == 'bm25':
+                # inverted_index_positional is required to bm25 method
+                self.inverted_index_positional = (defaultdict(lambda: defaultdict(lambda: [])))
             else:
                 self.inverted_index = defaultdict(float)
+
+    def calculate_avdl(self):
+        sum_of_documents_length = 0
+        ndocs = 0
+        for docs in self.doc_keys.keys():
+            sum_of_documents_length += self.doc_keys[int(docs)][2]
+            ndocs +=1
+        self.avdl = sum_of_documents_length / ndocs
+
+    def get_number_of_words_from_dockeys(self, document):
+        return self.doc_keys[document][2]
+
+    def log(self, n):
+        if n not in self.logarithm:
+            self.logarithm[n] = log10(n)
+        return self.logarithm[n]

@@ -12,9 +12,7 @@ class Tokenizer:
     
     # An empty string as a stopwords_path disables stopwords.
     # A size_filter of 0 disables size filter
-    def __init__(self, stopwords_path: str = 'content/stopwords.txt', 
-                 stemmer_enabled: bool = True, size_filter: int = 3,
-                 use_positions: bool = False) -> None:
+    def __init__(self, stopwords_path: str = 'content/stopwords.txt',  stemmer_enabled: bool = True, size_filter: int = 3, use_positions: bool = False, index_type = 'raw') -> None:
         
         if stopwords_path != '':
             with open(stopwords_path, 'r') as stopwords_file:
@@ -29,11 +27,12 @@ class Tokenizer:
         self.size_filter = size_filter
         
         self.use_positions = use_positions
+        self.index_type = index_type
         
     def tokenize(self, input_string: str):
         word_list = self.preprocess_input(input_string)
         
-        if self.use_positions:
+        if self.use_positions or self.index_type == 'bm25':
             tokens = self.stem_and_filter_words_with_positions(word_list)
         else:
             tokens = self.stem_and_filter_words(word_list)

@@ -3,6 +3,14 @@ from indexer import Indexer
 from filecmp import cmpfiles
 from os import listdir, scandir, remove
 
+
+
+tokenizer = Tokenizer(stopwords_path='', stemmer_enabled=True, size_filter=3, use_positions=True, index_type='bm25')
+indexer = Indexer(tokenizer, 30, index_type='bm25')
+indexer.index_data_source('content/data.tsv.gz')
+
+
+"""
 test_file = 'amazon_reviews_us_Digital_Video_Games_v1_00_sample'
 
 for file in scandir('index/' + test_file):
@@ -39,3 +47,4 @@ matching_files, mismatching_files, error_files = cmpfiles(
     reference_file_list, shallow=False)
 
 assert len(mismatching_files) + len(error_files) == 0
+"""
