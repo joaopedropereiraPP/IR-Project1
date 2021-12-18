@@ -502,9 +502,3 @@ class Indexer:
             file_writer.writerow(["Stopword path",  str(self.tokenizer.stopwords_path)])
             file_writer.writerow(["Use Positions",  str(self.tokenizer.use_positions)])
             
-
-        
-        
-        
-        
-        
