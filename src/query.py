@@ -51,7 +51,7 @@ class Query:
         #update master_index
         self.read_master_index()
 
-    def process_query(self, term:str):
+    def process_query(self):
 
         print("Method used: {}".format(self.index_type))
         print("Words to search:")

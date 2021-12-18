@@ -8,12 +8,12 @@ from query import Query
 
 
 
-dataset_name = 'teste'
 dataset_name = 'amazon_reviews_us_Digital_Video_Games_v1_00'
+dataset_name = 'data1'
 
 query = Query(data_path = dataset_name)
-word = 'yuri'
-query.process_query(word)
+
+query.process_query()
 
 
         

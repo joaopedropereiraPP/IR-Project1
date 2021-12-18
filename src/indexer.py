@@ -59,7 +59,7 @@ class Indexer:
         self.to_merge = False
 
         self.logarithm = {}
-
+        self.avdl = 0
         
 
     def get_inverted_index(self):
@@ -342,12 +342,16 @@ class Indexer:
         doc_id = doc[2]
         structure_doc_keys= []
         doc_body = '{} {} {}'.format(doc[5], doc[12], doc[13])
+        
+        tokens = self.tokenizer.tokenize(doc_body)
+        size = 0
+        for term in tokens:
+            size += len(tokens[term])
 
         #structure_doc_keys [doc_id, doc_name, document_length]
         structure_doc_keys.append(doc_id)
         structure_doc_keys.append(doc[5])
-        structure_doc_keys.append(len(doc_body))
-
+        structure_doc_keys.append(size)
         self.nr_indexed_docs += 1
         self.doc_keys[self.nr_indexed_docs] = structure_doc_keys
 
@@ -358,6 +362,7 @@ class Indexer:
     def parse_memory_term_to_disk(self, term: str) -> List[str]:
         row = [term]
         for posting in self.get_inverted_index()[term]:
+            print(term)
             if self.index_type == 'raw':
                 if self.tokenizer.use_positions:
                     positions_str = (','.join( [str(i) for i in self.get_inverted_index()[term][posting]]))
@@ -373,6 +378,7 @@ class Indexer:
                 if self.to_merge:
                     #PROCESSING DATA TO MERGE WITH BM25
                     if self.tokenizer.use_positions:
+                        print(posting)
                         dl = self.get_number_of_words_from_dockeys(int(posting))
                         bm25_procedure = bm25(k = self.k, b= self.b, positions= self.get_inverted_index()[term][posting], dl=dl, avdl= self.avdl)
                         row.append(str(posting) + ':' + bm25_procedure.bm25_with_positions())
@@ -386,7 +392,7 @@ class Indexer:
                     positions_str = (','.join( [str(i) for i in self.get_inverted_index()[term][posting]]))
                     row.append(str(posting) + ':' + positions_str)
                     
-            #print("--------------------"+ str(row))
+        print("--------------------")
         return row
 
     # the resulting TSV file on disk will have a term on the first column of
@@ -482,6 +488,7 @@ class Indexer:
             ndocs +=1
         self.avdl = sum_of_documents_length / ndocs
 
+
     def get_number_of_words_from_dockeys(self, document):
         return self.doc_keys[document][2]
 
@@ -501,4 +508,3 @@ class Indexer:
             file_writer.writerow(["Use Stemmer",  str(self.tokenizer.stemmer_enabled)])
             file_writer.writerow(["Stopword path",  str(self.tokenizer.stopwords_path)])
             file_writer.writerow(["Use Positions",  str(self.tokenizer.use_positions)])
-            

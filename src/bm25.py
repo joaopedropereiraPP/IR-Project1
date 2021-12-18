@@ -58,7 +58,10 @@ class bm25:
                     for docs in self.post_data[any_term].keys():
                         if docs not in self.bm25_ranking:
                             self.bm25_ranking[docs] = 0
-                        self.bm25_ranking[docs] += ((float(self.post_data[any_term][docs]) * float(self.files_to_open[file_number][index][any_term]['idf'])) * int(self.files_to_open[file_number][index][any_term]['count']))
+                            idf = float(self.files_to_open[file_number][index][any_term]['idf'])
+                            weight = float(self.post_data[any_term][docs])
+                            count = int(self.files_to_open[file_number][index][any_term]['count'])
+                        self.bm25_ranking[docs] += ((weight * idf) * count)
                     index += 1
         self.bm25_ranking = sorted(self.bm25_ranking.items(), key=lambda x: x[1], reverse=True) 
         print("BM25 Ranking")
@@ -66,7 +69,8 @@ class bm25:
             if len(self.bm25_ranking) >= i + 1:
                 doc=self.doc_keys[tuple(list(self.bm25_ranking)[i])[0]]['real_id']
                 doc_name=self.doc_keys[tuple(list(self.bm25_ranking)[i])[0]]['doc_name']
-                print("{}º: {}".format(i+1,  doc+" -> "+ doc_name))      
+                print("{}º: {}".format(i+1,  doc+" -> "+ doc_name))  
+                print(self.bm25_ranking[i])  
 
     def read_configurations(self):
         with open(self.configurations_folder_path, 'r') as file:
