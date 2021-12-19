@@ -1,52 +1,63 @@
-from tokenizer import Tokenizer
-from indexer import Indexer
 from filecmp import cmpfiles
-from os import listdir, scandir, remove
+from os import listdir, path, remove, scandir
 
-file = 'content/data.tsv.gz'
-file = 'content/amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz'
-file = 'content/data1.tsv.gz'
-
-tokenizer = Tokenizer(stopwords_path='content/stopwords.txt', stemmer_enabled=True, size_filter=3, use_positions=True, index_type='bm25')
-indexer = Indexer(tokenizer, max_postings_per_temp_block=1000000, index_type='bm25')
-indexer.index_data_source(file)
+from indexer import Indexer
+from tokenizer import Tokenizer
 
 
-"""
-test_file = 'amazon_reviews_us_Digital_Video_Games_v1_00_sample'
+def indexer_test(indexer, test_file, reference_index_folder):
 
-for file in scandir('index/' + test_file):
-    remove(file)
+    test_file_basename = path.splitext(
+        path.splitext(path.basename(test_file))[0])[0]
+    test_index_folder = 'index/' + test_file_basename
 
+    if path.exists(test_index_folder):
+        for file in scandir(test_index_folder):
+            remove(file)
+    indexer.index_data_source(test_file)
+
+    reference_file_list = listdir(reference_index_folder)
+
+    matching_files, mismatching_files, error_files = cmpfiles(
+        test_index_folder,
+        reference_index_folder,
+        reference_file_list, shallow=False)
+
+    assert len(mismatching_files) + len(error_files) == 0
+
+
+# raw index unit test
 tokenizer = Tokenizer(stopwords_path='', stemmer_enabled=True, size_filter=0,
                       use_positions=False)
 indexer = Indexer(tokenizer, 30)
-indexer.index_data_source('content/' + test_file + '.tsv.gz')
 
-reference_file_list = listdir('index/' + test_file + '_reference/nonpositional')
+test_file = 'content/amazon_reviews_us_Digital_Video_Games_v1_00_sample.tsv.gz'
+reference_index_folder = 'index/amazon_reviews_us_Digital_Video_Games' + \
+    '_v1_00_sample_reference/nonpositional'
 
-matching_files, mismatching_files, error_files = cmpfiles(
-    'index/' + test_file,
-    'index/' + test_file + '_reference/nonpositional',
-    reference_file_list, shallow=False)
-
-assert len(mismatching_files) + len(error_files) == 0
+indexer_test(indexer, test_file, reference_index_folder)
 
 
-for file in scandir('index/' + test_file):
-    remove(file)
-
+# positional raw index unit test
 tokenizer = Tokenizer(stopwords_path='', stemmer_enabled=True, size_filter=0,
                       use_positions=True)
 indexer = Indexer(tokenizer, 30)
-indexer.index_data_source('content/' + test_file + '.tsv.gz')
 
-reference_file_list = listdir('index/' + test_file + '_reference/positional')
+test_file = 'content/amazon_reviews_us_Digital_Video_Games_v1_00_sample.tsv.gz'
+reference_index_folder = 'index/amazon_reviews_us_Digital_Video_Games' + \
+    '_v1_00_sample_reference/positional'
 
-matching_files, mismatching_files, error_files = cmpfiles(
-    'index/' + test_file,
-    'index/' + test_file + '_reference/positional',
-    reference_file_list, shallow=False)
+indexer_test(indexer, test_file, reference_index_folder)
 
-assert len(mismatching_files) + len(error_files) == 0
-"""
+
+# BM25 index unit test
+tokenizer = Tokenizer(stopwords_path='content/stopwords.txt',
+                      stemmer_enabled=True, size_filter=3, use_positions=True,
+                      index_type='bm25')
+indexer = Indexer(tokenizer, index_type='bm25')
+
+test_file = 'content/data1.tsv.gz'
+# indexer.index_data_source(test_file)
+reference_index_folder = 'index/data1_reference'
+
+indexer_test(indexer, test_file, reference_index_folder)

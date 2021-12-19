@@ -345,8 +345,11 @@ class Indexer:
         
         tokens = self.tokenizer.tokenize(doc_body)
         size = 0
-        for term in tokens:
-            size += len(tokens[term])
+        if self.tokenizer.use_positions:
+            for term in tokens:
+                size += len(tokens[term])
+        else:
+            size = len(tokens)
 
         #structure_doc_keys [doc_id, doc_name, document_length]
         structure_doc_keys.append(doc_id)
@@ -362,7 +365,6 @@ class Indexer:
     def parse_memory_term_to_disk(self, term: str) -> List[str]:
         row = [term]
         for posting in self.get_inverted_index()[term]:
-            print(term)
             if self.index_type == 'raw':
                 if self.tokenizer.use_positions:
                     positions_str = (','.join( [str(i) for i in self.get_inverted_index()[term][posting]]))
@@ -378,7 +380,6 @@ class Indexer:
                 if self.to_merge:
                     #PROCESSING DATA TO MERGE WITH BM25
                     if self.tokenizer.use_positions:
-                        print(posting)
                         dl = self.get_number_of_words_from_dockeys(int(posting))
                         bm25_procedure = bm25(k = self.k, b= self.b, positions= self.get_inverted_index()[term][posting], dl=dl, avdl= self.avdl)
                         row.append(str(posting) + ':' + bm25_procedure.bm25_with_positions())
@@ -392,7 +393,6 @@ class Indexer:
                     positions_str = (','.join( [str(i) for i in self.get_inverted_index()[term][posting]]))
                     row.append(str(posting) + ':' + positions_str)
                     
-        print("--------------------")
         return row
 
     # the resulting TSV file on disk will have a term on the first column of

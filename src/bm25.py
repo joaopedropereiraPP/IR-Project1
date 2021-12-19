@@ -64,13 +64,10 @@ class bm25:
                         self.bm25_ranking[docs] += ((weight * idf) * count)
                     index += 1
         self.bm25_ranking = sorted(self.bm25_ranking.items(), key=lambda x: x[1], reverse=True) 
-        print("BM25 Ranking")
         for i in range(0,3):
             if len(self.bm25_ranking) >= i + 1:
                 doc=self.doc_keys[tuple(list(self.bm25_ranking)[i])[0]]['real_id']
                 doc_name=self.doc_keys[tuple(list(self.bm25_ranking)[i])[0]]['doc_name']
-                print("{}º: {}".format(i+1,  doc+" -> "+ doc_name))  
-                print(self.bm25_ranking[i])  
 
     def read_configurations(self):
         with open(self.configurations_folder_path, 'r') as file:
