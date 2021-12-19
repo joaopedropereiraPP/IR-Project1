@@ -3,5 +3,7 @@ index/*
 !index/amazon_reviews_us_Digital_Video_Games_v1_00_sample_reference/
 !index/data1_reference/
 content/*.gz
+!content/amazon_reviews_us_Digital_Video_Games_v1_00_sample.tsv.gz
+!content/data1.tsv.gz
 .vscode
 .ropeproject
