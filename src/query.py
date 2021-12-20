@@ -41,9 +41,7 @@ class Query:
         #initialize tokenizer
         self.tokenize = Tokenizer(stopwords_path = self.stopwords_path, 
                                 stemmer_enabled = self.stemmer_enabled, 
-                                size_filter = self.size_filter, 
-                                use_positions=self.use_positions,
-                                index_type=self.index_type)
+                                size_filter = self.size_filter)
 
         #update doc_keys
         self.read_doc_keys()
@@ -103,4 +101,7 @@ class Query:
             self.use_positions = True if filecontent[4][1] == 'True' else False
 
     def term_tokenizer(self, term):
-        return self.tokenize.tokenize(input_string = term)
+        if self.use_positions:
+            return self.tokenize.tokenize_positional(input_string = term)
+        else:
+            return self.tokenize.tokenize(input_string = term)

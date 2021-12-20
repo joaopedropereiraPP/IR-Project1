@@ -27,9 +27,9 @@ class Main:
         self.parser = ArgumentParser()
         self.tokenizer = Tokenizer(stopwords_path = self.stopwords_path, 
                                 stemmer_enabled = self.stemmer_enabled, 
-                                size_filter = self.minimum_word_size, 
-                                use_positions = self.use_positions)
-        self.indexer = Indexer(tokenizer = self.tokenizer, max_postings_per_temp_block = self.max_post)
+                                size_filter = self.minimum_word_size)
+        self.indexer = Indexer(tokenizer = self.tokenizer, max_postings_per_temp_block = self.max_post,
+            use_positions=self.use_positions)
  
     def parse_args(self):
         parser = ArgumentParser()

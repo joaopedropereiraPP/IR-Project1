@@ -1,0 +1,5 @@
+Index Type	bm25
+Size Filter	3
+Use Stemmer	True
+Stopword path	content/stopwords.txt
+Use Positions	False
