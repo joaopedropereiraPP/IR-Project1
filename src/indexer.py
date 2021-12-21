@@ -3,7 +3,6 @@ from collections import defaultdict
 from contextlib import ExitStack
 from csv import QUOTE_NONE, field_size_limit, reader, unix_dialect, writer
 from glob import glob
-from math import log10
 from os import makedirs, path
 from time import time
 from typing import DefaultDict, Dict, List, Tuple
@@ -49,7 +48,6 @@ class Indexer:
         self.master_index = defaultdict(lambda: [0, 0, 0])
         self.doc_keys = {}
         self.initialize_statistics()
-        self.logarithm = {}
         self.avdl = 0
 
     def initialize_statistics(self) -> None:
@@ -302,10 +300,8 @@ class Indexer:
             list.sort(keys)
             keys.sort()
             for key in keys:
-                idf = self.log(self.nr_indexed_docs) \
-                    - self.log(self.master_index[key][0])
                 file_writer.writerow(
-                    [key, idf, self.master_index[key][1]]
+                    [key, self.calculate_df(key), self.master_index[key][1]]
                 )
 
     # the resulting TSV file on disk will have the surrogate key on each row,
@@ -326,11 +322,6 @@ class Indexer:
 
     def get_number_of_words_from_dockeys(self, document):
         return self.doc_keys[document][2]
-
-    def log(self, n):
-        if n not in self.logarithm:
-            self.logarithm[n] = log10(n)
-        return self.logarithm[n]
 
     def create_metadata(self, index_folder_path):
         file_path = index_folder_path + '/conf.tsv'
@@ -376,3 +367,7 @@ class Indexer:
             posting_list = [Posting.from_string(posting_str)
                             for posting_str in posting_str_list]
         return posting_list
+
+    def calculate_df(self, term: str) -> int:
+        df = self.master_index[term][0]
+        return df
