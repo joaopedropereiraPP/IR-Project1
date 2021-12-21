@@ -73,6 +73,7 @@ def indexer_test(indexer, test_file, reference_index_folder):
 
 # indexer_test(indexer, test_file, reference_index_folder)
 
+
 # nonpositional lnc.ltc weighted index unit test
 tokenizer = Tokenizer(stopwords_path='content/stopwords.txt',
                       stemmer_enabled=True, size_filter=3)
