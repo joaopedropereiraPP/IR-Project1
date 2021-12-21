@@ -7,6 +7,7 @@ from math import log10
 from os import makedirs, path
 from time import time
 from typing import DefaultDict, Dict, List, Tuple
+from configparser import ConfigParser
 
 from postings import Posting, PostingPositional
 from tokenizer import Tokenizer
@@ -333,21 +334,18 @@ class Indexer:
         return self.logarithm[n]
 
     def create_metadata(self, index_folder_path):
-        file_path = index_folder_path + '/conf.tsv'
+        ini_file = index_folder_path + '/conf.ini'
+        config = ConfigParser()
+        config.read('content/FILE.INI')
+        config.add_section('METADATA')
+        config['METADATA']['index_type'] = self.index_type
+        config['METADATA']['size_filter'] = str(self.tokenizer.size_filter)
+        config['METADATA']['stemmer_enabled'] = str(self.tokenizer.stemmer_enabled)
+        config['METADATA']['stopwords_path'] = str(self.tokenizer.stopwords_path)
+        config['METADATA']['use_positions'] = str(self.use_positions)
 
-        with open(file_path, mode='wt', encoding='utf8', newline='') as conf_file:
-            file_writer = writer(conf_file, delimiter='\t')
-
-            file_writer.writerow(["Index Type",
-                                  self.index_type])
-            file_writer.writerow(["Size Filter",
-                                  str(self.tokenizer.size_filter)])
-            file_writer.writerow(["Use Stemmer",
-                                  str(self.tokenizer.stemmer_enabled)])
-            file_writer.writerow(["Stopword path",
-                                  str(self.tokenizer.stopwords_path)])
-            file_writer.writerow(["Use Positions",
-                                  str(self.use_positions)])
+        with open(ini_file, 'w') as configfile: 
+            config.write(configfile)
 
     def create_postings(self, doc_id: int, doc_body: str) -> None:
         tokens = self.tokenizer.tokenize(doc_body)
