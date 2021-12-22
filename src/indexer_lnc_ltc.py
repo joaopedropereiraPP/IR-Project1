@@ -9,9 +9,9 @@ from tokenizer import Tokenizer
 class IndexerLncLtc(Indexer):
     logarithm: Dict[int, float]
 
-    def __init__(self, tokenizer: Tokenizer, k: float = 1.2, b: float = 0.75,
+    def __init__(self, tokenizer: Tokenizer,
                  max_postings_per_temp_block: int = 1000000,
-                 index_type: str = 'raw', use_positions=False) -> None:
+                 use_positions=False) -> None:
         super().__init__(tokenizer, max_postings_per_temp_block,
                          use_positions=use_positions)
         self.logarithm = {}

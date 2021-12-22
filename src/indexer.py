@@ -1,12 +1,12 @@
 import gzip
 from collections import defaultdict
+from configparser import ConfigParser
 from contextlib import ExitStack
 from csv import QUOTE_NONE, field_size_limit, reader, unix_dialect, writer
 from glob import glob
 from os import makedirs, path
 from time import time
 from typing import DefaultDict, Dict, List, Tuple
-from configparser import ConfigParser
 
 from postings import Posting, PostingPositional
 from tokenizer import Tokenizer
@@ -107,8 +107,8 @@ class Indexer:
         dialect.quoting = QUOTE_NONE
         dialect.escapechar = None
 
-        with gzip.open(data_source_path,
-                       mode='rt', encoding='utf8', newline='') as data_file:
+        with gzip.open(data_source_path, mode='rt', encoding='utf8',
+                       newline='') as data_file:
             data_reader = reader(data_file, dialect)
 
             # skip the first line (the header)
@@ -229,7 +229,8 @@ class Indexer:
 
                 # dump to disk if the number of postings on the final index on
                 # memory exceeds the maximum per block
-                if self.block_posting_count >= self.max_postings_per_temp_block:
+                if self.block_posting_count \
+                        >= self.max_postings_per_temp_block:
                     block_file_path = '{}/PostingIndexBlock{}.tsv'.format(
                         index_blocks_folder,
                         nr_final_index_blocks)
@@ -309,7 +310,8 @@ class Indexer:
     # followed by the natural key (hexadecimal) on the next column
     def dump_doc_keys(self, index_folder_path: str) -> None:
         file_path = index_folder_path + '/DocKeys.tsv'
-        with open(file_path, mode='wt', encoding='utf8', newline='') as doc_keys_file:
+        with open(file_path, mode='wt', encoding='utf8',
+                  newline='') as doc_keys_file:
             file_writer = writer(doc_keys_file, delimiter='\t')
             ordered_terms = list(self.inverted_index.keys())
             list.sort(ordered_terms)
@@ -331,11 +333,13 @@ class Indexer:
         config.add_section('METADATA')
         config['METADATA']['index_type'] = self.index_type
         config['METADATA']['size_filter'] = str(self.tokenizer.size_filter)
-        config['METADATA']['stemmer_enabled'] = str(self.tokenizer.stemmer_enabled)
-        config['METADATA']['stopwords_path'] = str(self.tokenizer.stopwords_path)
+        config['METADATA']['stemmer_enabled'] = str(
+            self.tokenizer.stemmer_enabled)
+        config['METADATA']['stopwords_path'] = str(
+            self.tokenizer.stopwords_path)
         config['METADATA']['use_positions'] = str(self.use_positions)
 
-        with open(ini_file, 'w') as configfile: 
+        with open(ini_file, 'w') as configfile:
             config.write(configfile)
 
     def create_postings(self, doc_id: int, doc_body: str) -> None:
