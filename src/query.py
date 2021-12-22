@@ -5,7 +5,7 @@ from collections import defaultdict
 from bm25 import bm25
 from time import time
 from configparser import ConfigParser
-
+from postings import Posting, PostingPositional, PostingWeighted, PostingWeightedPositional
 class Query:
     doc_keys = {}
     doc_keys_folder_path: str
@@ -14,8 +14,12 @@ class Query:
     tokenize: Tokenizer      
 
 
-    def __init__(self, data_path , stopwords_path = '', stemmer_enabled = True, size_filter = 0, use_positions = False):
+    def __init__(self, data_path , stopwords_path = '', stemmer_enabled = True, size_filter = 0, use_positions = False, dump_results_file = True, cmd_results = True):
         
+        self.to_search = ''
+        self.dump_results_file = dump_results_file
+        self.cmd_results = cmd_results
+
         #data
         self.data_path = data_path
 
@@ -24,7 +28,7 @@ class Query:
         self.master_index_folder_path = ('index/' + path.basename(data_path).split('.')[0] + '/MasterIndex.tsv')
         self.posting_index_block_file = 'index/'+ path.basename(data_path).split('.')[0]+'/PostingIndexBlock{}.tsv'
         self.configurations_folder_path = ('index/' + path.basename(data_path).split('.')[0] + '/conf.ini')
-
+        self.query_result_file = 'index/'+ path.basename(data_path).split('.')[0]+'/query_result.txt'
 
         self.doc_keys= (defaultdict(lambda: defaultdict(lambda: [])))
         self.master_index = defaultdict(lambda: defaultdict(dict))
@@ -51,13 +55,16 @@ class Query:
         #update master_index
         self.read_master_index()
 
-        self.files_to_open = {}
+        self.files_to_open = defaultdict(lambda: defaultdict(int))
+
 
         
     def process_query(self, to_search):
+        self.to_search = to_search
         #conjunto de palavras
         terms = self.term_tokenizer(to_search)
         start_time = time()
+        print("Q: {}".format(to_search.replace('\n','')))
         if self.index_type == 'lnc.ltc':
             pass 
 
@@ -66,7 +73,7 @@ class Query:
             self.bm25_search(terms)
 
         total_time = time() - start_time
-        print("Time used: {:0.3f}s".format(total_time))
+        print("Time used: {:0.3f}s \n\n".format(total_time))
 
 
 
@@ -110,66 +117,70 @@ class Query:
     def bm25_search(self, terms):
         self.post_data = {}
         
-        bm25_ranking = {}
+        bm25_ranking = defaultdict(int)
+        self.files_to_open.clear()
 
         #Stores all documents with their terms to optimize the search within the PostingIndexBlock file 
         self.store_files_to_open(terms)
 
-        for file_number in self.files_to_open.keys():
-            
+
+        for file_number in self.files_to_open.keys():          
             file_name = self.posting_index_block_file.format(file_number)
-            self.read_posting_index_block(file_name)
+            self.read_posting_index_block(file_name, self.files_to_open[file_number])
 
-            index = 0
-            for terms_on_file in self.files_to_open[file_number]:
+            for i in self.files_to_open[file_number]:
+                counter = self.files_to_open[file_number][i]
+                for post in self.post_data[i].keys():
+                    bm25_ranking[post] += self.post_data[i][post] * counter
+        
+        results = []
+        for i in sorted (bm25_ranking) :
+            results.append(self.doc_keys[str(i)]['real_id'] + " -> " + self.doc_keys[str(i)]['doc_name'])
+        
+        if self.dump_results_file:
+            self.dump_query_result(results)
+            
+        if self.cmd_results:
+            i = 0
+            #print("Q: {}".format(self.to_search.replace('\n','')))
+            for result in results:
+                if i <10:
+                    print(result)
+                i += 1
 
-                for any_term in terms_on_file.keys():
-                    for docs in self.post_data[any_term].keys():
-                        if docs not in bm25_ranking:
-                            bm25_ranking[docs] = 0
-                            idf = float(self.files_to_open[file_number][index][any_term]['idf'])
-                            weight = float(self.post_data[any_term][docs])
-                            count = int(self.files_to_open[file_number][index][any_term]['count'])
-                        bm25_ranking[docs] += ((weight * idf) * count)
-                    index += 1
-        bm25_ranking = sorted(bm25_ranking.items(), key=lambda x: x[1], reverse=True) 
-        for i in range(0,10):
-            if len(bm25_ranking) >= i + 1:
-                doc=self.doc_keys[tuple(list(bm25_ranking)[i])[0]]['real_id']
-                doc_name=self.doc_keys[tuple(list(bm25_ranking)[i])[0]]['doc_name']
-                print("{}º {} -> {}".format(i, doc, doc_name))
-
-
+    def dump_query_result(self, results):
+        with open(self.query_result_file , mode='a', encoding='utf8', newline='') as f:
+            f.write('Q: {} \n'.format(self.to_search))
+            i=0
+            for result in results:
+                if i <100:
+                    f.writelines(result)
+                    f.write('\n')
+                i+=1
 
     def store_files_to_open(self, terms):
-        term_result={}
-        result={}
+
         for term in terms.keys():
-            term_size = len(terms[term])
             doc = self.master_index[term]['file_path']
-            idf = self.master_index[term]['idf']
+            self.files_to_open[doc][term] = len(terms[term])
 
-            term_result={}
-            result={}
-            result['idf'] = idf
-            result['count'] = term_size
-            
-            term_result[term] = result
-            if doc not in self.files_to_open:
-                self.files_to_open[doc] = []
 
-            self.files_to_open[doc].append(term_result)
 
-    def read_posting_index_block(self, file_to_analyse):
-        self.post_data = {}
+    def read_posting_index_block(self, file_to_analyse, terms_to_analyse):
+        self.post_data.clear()
         with open(file_to_analyse, 'r') as file:
-                    filecontent = csv.reader(file, delimiter='\t')
-                    for a in filecontent:
-                        term = a[0]
-                        post = {}
-                        for n in range(1, len(a)):
-                            values = a[n].split(":")
-                            doc_id = values[0]
-                            weight = values[1]
-                            post[doc_id] = weight
-                        self.post_data[term] = post
+            filecontent = csv.reader(file, delimiter='\t')
+            for content in filecontent:
+                term = content[0]
+
+                if term in terms_to_analyse:
+
+                    post = {}
+                    for n in range(1, len(content)):
+                        if self.use_positions:
+                            posting = PostingWeightedPositional.from_string(content[n])
+                            post[posting.doc_id] = posting.weight
+                        else:
+                            posting = PostingWeighted.from_string(content[n])
+                            post[posting.doc_id] = posting.weight
+                    self.post_data[term] = post
