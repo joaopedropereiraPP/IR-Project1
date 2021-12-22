@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from os import path
 from time import time
 from indexer_bm25 import IndexerBM25
+from indexer_lnc_ltc import IndexerLncLtc
 
 class Main:
     data_path: str
@@ -36,6 +37,8 @@ class Main:
         self.search_type = ''
         self.loop = False
         self.query_file = ''
+        self.dump_results_file =False
+        self.cmd_results = False
 
     
     
@@ -81,7 +84,7 @@ class Main:
         # maximum postings per block for the SPIMI
         parser.add_argument("--max_post", help="Set the maximum postings per block",
                             type=int)
-
+        
 
         ##IF IS QUERY MODE
         #set folder name
@@ -89,10 +92,15 @@ class Main:
                             type=str)
         # set the search mode
         parser.add_argument("--search_type", help="Choose the search mode", 
-                            type=str, metavar="file/loop")
+                            nargs='+', metavar="file (file-path)/loop")
+        
+        parser.add_argument("--dump_file", help="Enable to generate file with results",
+                            action="store_true")
+
+        parser.add_argument("--cmd_results", help="Enable to show the results on terminal",
+                            action="store_true")
         # Set the query file
-        parser.add_argument("--query_file", help="Choose the path to search", 
-                            type=str, metavar="(txt file)")
+        #parser.add_argument("--query_file", help="Choose the path to search", type=str, metavar="(txt file)")
 
         return parser
 
@@ -107,8 +115,10 @@ class Main:
                     self.index_type = args.method
                 else:
                     parser.error("--method requires 3 options (raw / lnc.ltc / bm25).")
+                    sys.exit()
             else:
                 parser.error("Indexer mode requires --method and --data_path.")
+                sys.exit()
 
             #data_path
             if args.data_path:
@@ -119,6 +129,7 @@ class Main:
                     sys.exit()
             else:
                 parser.error("Indexer mode requires --method and --data_path.")
+                sys.exit()
 
             # if stopwords are disabled but a stopwords path is still defined by the user
             if (not args.nostopwords) and (args.stopwords != None):
@@ -163,21 +174,29 @@ class Main:
                     sys.exit()
             else:
                 parser.error("Search mode requires --data and --search_type.")
+                sys.exit()
 
             #search_type
-            if args.search_type == 'loop':
+            if args.search_type[0] == 'loop':
                 self.loop = True
-            elif args.search_type == 'file':
-                self.file = args.search_type
-                if not args.query_file:
-                    parser.error("Type of search by file required  --query_file.")
-                self.query_file = args.query_file
+            elif args.search_type[0] == 'file':
+                if not args.search_type[1]:
+                    parser.error("Type of search by file required the file path (txt)")
+                    sys.exit() 
+                self.query_file = args.search_type[1]
                 if not path.exists(self.query_file) :
                     print("Query file does not exist!")
                     sys.exit()  
             else:
                 parser.error("Search type requires one of two options: file / loop.")
+                sys.exit()
+
+            if not args.dump_file and  not args.cmd_results:
+                parser.error("Search type requires at least one of two options: --dump_file / --cmd_results")
+                sys.exit()
                 
+            self.dump_results_file = args.dump_file
+            self.cmd_results = args.cmd_results
         else:
             print(parser.parse_args(['-h']))
 
@@ -201,27 +220,30 @@ class Main:
                 tokenizer = Tokenizer(stopwords_path = self.stopwords_path, 
                                         stemmer_enabled = self.stemmer_enabled, 
                                         size_filter = self.minimum_word_size)
-                indexer = IndexerBM25(tokenizer, index_type=self.index_type, use_positions=self.use_positions)
+                indexer = IndexerBM25(tokenizer,  use_positions=self.use_positions)
                 indexer.index_data_source(self.data_path)
             elif self.index_type == 'lnc.ltc':
-                pass 
-            
+                tokenizer = Tokenizer(stopwords_path = self.stopwords_path, 
+                                        stemmer_enabled = self.stemmer_enabled, 
+                                        size_filter = self.minimum_word_size)
+                indexer = IndexerLncLtc(tokenizer,  use_positions=self.use_positions)
+                indexer.index_data_source(self.data_path)
 
         elif  self.mode == 'searcher':
-            query = Query(data_path = self.data)
+            query = Query(data_path = self.data, dump_results_file = self.dump_results_file, cmd_results = self.cmd_results)
             if self.loop:
-                print("Words to search:")
+                print("Words to search: ")
                 to_search = input()
-                while ( to_search != '0'):
+                while ( to_search != ''):
                     #query = Query(data_path = self.data)
                     query.process_query(to_search)
                     print("Words to search:")
                     to_search = input()
 
-            if self.file:
+            else:
                 lines = self.read_query_file()
                 for line in lines:
-                    print("\n Q: {}".format(line))
+                    #print("Q: {}".format(line))
                     query.process_query(line)
 
 
