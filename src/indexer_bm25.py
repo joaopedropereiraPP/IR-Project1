@@ -62,6 +62,7 @@ class IndexerBM25(Indexer):
 
     def calculate_weights(self) -> None:
         for term in self.inverted_index:
+            idf = self.calculate_df(term)
             for posting in self.inverted_index[term]:
                 tf = posting.weight
                 dl = int(self.doc_keys[posting.doc_id][2])
@@ -69,7 +70,7 @@ class IndexerBM25(Indexer):
                 B = (1 - self.b) + self.b * (dl / self.avdl)
                 divider = (self.k * B) + tf
                 weight = dividend / divider
-                posting.weight = weight
+                posting.weight = weight * idf
 
     def posting_list_from_str(self,
                               posting_str_list: str) -> List[PostingWeighted]:
