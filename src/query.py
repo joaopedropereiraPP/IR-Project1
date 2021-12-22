@@ -64,7 +64,7 @@ class Query:
 
         self.files_to_open = defaultdict(lambda: defaultdict(int))
 
-        if self.dump_query_result:
+        if self.dump_results_file:
             self.clean_query_results_file()
 
     def process_query(self, to_search):
