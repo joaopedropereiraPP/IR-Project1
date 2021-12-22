@@ -3,8 +3,6 @@ from collections import defaultdict
 from configparser import ConfigParser
 from os import path
 from time import time
-
-from bm25 import bm25
 from postings import (Posting, PostingPositional, PostingWeighted,
                       PostingWeightedPositional)
 from tokenizer import Tokenizer
@@ -65,6 +63,9 @@ class Query:
         self.read_master_index()
 
         self.files_to_open = defaultdict(lambda: defaultdict(int))
+
+        if self.dump_query_result:
+            self.clean_query_results_file()
 
     def process_query(self, search_text):
         self.search_text = search_text
@@ -188,3 +189,7 @@ class Query:
                             posting = PostingWeighted.from_string(content[n])
                             post[posting.doc_id] = posting.weight
                     self.post_data[term] = post
+
+    def clean_query_results_file(self):
+        file = open(self.query_result_file,"w")
+        file.close()
