@@ -1,4 +1,3 @@
-
 from filecmp import cmpfiles
 from os import listdir, path, remove, scandir
 
