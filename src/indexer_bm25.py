@@ -49,6 +49,7 @@ class IndexerBM25(Indexer):
             self.block_posting_count += 1
 
     def final_indexing_calculations(self) -> None:
+        self.update_dfs()
         self.calculate_avdl()
         self.calculate_weights()
 
@@ -62,7 +63,7 @@ class IndexerBM25(Indexer):
 
     def calculate_weights(self) -> None:
         for term in self.inverted_index:
-            idf = self.calculate_df(term)
+            idf = self.master_index[term][0]
             for posting in self.inverted_index[term]:
                 tf = posting.weight
                 dl = int(self.doc_keys[posting.doc_id][2])
@@ -82,10 +83,12 @@ class IndexerBM25(Indexer):
                 posting_str) for posting_str in posting_str_list]
         return posting_list
 
-    def calculate_df(self, term: str) -> float:
-        idf = self.log(self.nr_indexed_docs) \
-            - self.log(self.master_index[term][0])
-        return idf
+    def update_dfs(self):
+        for term in self.master_index:
+            df = self.master_index[term][0]
+            idf = self.log(self.nr_indexed_docs) \
+                - self.log(df)
+            self.master_index[term][0] = idf
 
     def log(self, n: int) -> float:
         if n not in self.logarithm:

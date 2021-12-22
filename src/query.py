@@ -19,7 +19,7 @@ class Query:
                  size_filter=0, use_positions=False, dump_results_file=True,
                  cmd_results=True):
 
-        self.to_search = ''
+        self.search_text = ''
         self.dump_results_file = dump_results_file
         self.cmd_results = cmd_results
 
@@ -67,17 +67,15 @@ class Query:
         if self.dump_results_file:
             self.clean_query_results_file()
 
-    def process_query(self, to_search):
-        self.to_search = to_search
+    def process_query(self, search_text):
+        self.search_text = search_text
         # conjunto de palavras
-        terms = self.term_tokenizer(to_search)
+        terms = self.term_tokenizer(search_text)
         start_time = time()
-        print('Q: {}'.format(to_search.replace('\n', '')))
+        print('Q: {}'.format(search_text.replace('\n', '')))
         if self.index_type == 'lnc.ltc':
             pass
-
         elif self.index_type == 'bm25':
-
             self.bm25_search(terms)
 
         total_time = time() - start_time
@@ -160,7 +158,7 @@ class Query:
     def dump_query_result(self, results):
         with open(self.query_result_file, mode='a', encoding='utf8',
                   newline='') as f:
-            f.write('Q: {} \n'.format(self.to_search))
+            f.write('Q: {} \n'.format(self.search_text))
             i = 0
             for result in results:
                 if i < 100:

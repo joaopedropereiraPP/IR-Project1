@@ -303,7 +303,7 @@ class Indexer:
             keys.sort()
             for key in keys:
                 file_writer.writerow(
-                    [key, self.calculate_df(key), self.master_index[key][1]]
+                    [key, self.master_index[key][0], self.master_index[key][1]]
                 )
 
     # the resulting TSV file on disk will have the surrogate key on each row,
@@ -358,7 +358,7 @@ class Indexer:
             self.block_posting_count += 1
 
     def final_indexing_calculations(self) -> None:
-        pass
+        self.update_dfs()
 
     def posting_list_from_str(self,
                               posting_str_list: List[str]) -> List[Posting]:
@@ -370,6 +370,5 @@ class Indexer:
                             for posting_str in posting_str_list]
         return posting_list
 
-    def calculate_df(self, term: str) -> int:
-        df = self.master_index[term][0]
-        return df
+    def update_dfs(self):
+        pass
