@@ -140,6 +140,8 @@ class Query:
                     bm25_ranking[post] += self.post_data[i][post] * counter
 
         results = []
+        if not bm25_ranking:
+            print("Nothing found!")
         for i in sorted(bm25_ranking):
             results.append(self.doc_keys[str(i)]['real_id']
                            + ' -> ' + self.doc_keys[str(i)]['doc_name'])
@@ -170,7 +172,8 @@ class Query:
 
         for term in terms.keys():
             doc = self.master_index[term]['file_path']
-            self.files_to_open[doc][term] = len(terms[term])
+            if doc:
+                self.files_to_open[doc][term] = len(terms[term])
 
     def read_posting_index_block(self, file_to_analyse, terms_to_analyse):
         self.post_data.clear()
