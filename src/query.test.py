@@ -19,11 +19,11 @@ query.process_query()
 
 # query.read_master_index()
 
-#print("Time to set up a query searcher (s): " + str(time() - initial_time) )
-#print("Search term:")
+#print('Time to set up a query searcher (s): ' + str(time() - initial_time) )
+#print('Search term:')
 #word_to_search = input()
 # while word_to_search != '0':
 
 #    query.process_query(word_to_search)
-#    print("Search term ( 0 to exit ):")
+#    print('Search term ( 0 to exit ):')
 #    word_to_search = input()

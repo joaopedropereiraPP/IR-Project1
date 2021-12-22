@@ -70,8 +70,8 @@ class Tokenizer:
     # made all lower case and split into substrings using the spaces to get
     # the words
     def preprocess_input(self, input_string: str) -> List[str]:
-        word_list = sub("<br />|[^0-9a-zA-Z]+", " ", input_string)
-        word_list = sub("[^a-zA-Z ]+[a-zA-Z]+|[a-zA-Z]+[^a-zA-Z ]+",
-                        "", word_list).lower().split(" ")
+        word_list = sub('<br />|[^0-9a-zA-Z]+', ' ', input_string)
+        word_list = sub('[^a-zA-Z ]+[a-zA-Z]+|[a-zA-Z]+[^a-zA-Z ]+',
+                        '', word_list).lower().split(' ')
 
         return word_list

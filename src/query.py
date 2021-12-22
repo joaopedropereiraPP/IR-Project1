@@ -71,7 +71,7 @@ class Query:
         # conjunto de palavras
         terms = self.term_tokenizer(to_search)
         start_time = time()
-        print("Q: {}".format(to_search.replace('\n', '')))
+        print('Q: {}'.format(to_search.replace('\n', '')))
         if self.index_type == 'lnc.ltc':
             pass
 
@@ -80,7 +80,7 @@ class Query:
             self.bm25_search(terms)
 
         total_time = time() - start_time
-        print("Time used: {:0.3f}s \n\n".format(total_time))
+        print('Time used: {:0.3f}s \n\n'.format(total_time))
 
     def read_doc_keys(self):
         with open(self.doc_keys_folder_path, 'r') as file:
@@ -141,14 +141,14 @@ class Query:
         results = []
         for i in sorted(bm25_ranking):
             results.append(self.doc_keys[str(i)]['real_id']
-                           + " -> " + self.doc_keys[str(i)]['doc_name'])
+                           + ' -> ' + self.doc_keys[str(i)]['doc_name'])
 
         if self.dump_results_file:
             self.dump_query_result(results)
 
         if self.cmd_results:
             i = 0
-            #print("Q: {}".format(self.to_search.replace('\n','')))
+            #print('Q: {}'.format(self.to_search.replace('\n','')))
             for result in results:
                 if i < 10:
                     print(result)
