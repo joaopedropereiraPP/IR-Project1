@@ -19,9 +19,8 @@ def indexer_test(indexer, test_file, reference_index_folder):
     indexer.index_data_source(test_file)
 
     reference_file_list = listdir(reference_index_folder)
-    query_file = 'query_result.txt'
-    if query_file in reference_file_list:
-        reference_file_list.remove(query_file)
+    reference_file_list = [file for file in reference_file_list
+                           if path.splitext(file)[1] != '.txt']
 
     matching_files, mismatching_files, error_files = cmpfiles(
         test_index_folder,

@@ -1,3 +1,5 @@
+from typing import Dict
+from math import log10, sqrt
 import csv
 from collections import defaultdict
 from configparser import ConfigParser
@@ -14,11 +16,12 @@ class Query:
     master_index_folder_path: str
     master_index: dict
     tokenize: Tokenizer
+    logarithm: Dict[int, float]
 
     def __init__(self, data_path, stopwords_path='', stemmer_enabled=True,
                  size_filter=0, use_positions=False, dump_results_file=True,
                  cmd_results=True):
-
+        self.logarithm = {}
         self.search_text = ''
         self.dump_results_file = dump_results_file
         self.cmd_results = cmd_results
@@ -65,11 +68,11 @@ class Query:
     def process_query(self, search_text):
         self.search_text = search_text
         # conjunto de palavras
-        terms = self.term_tokenizer(search_text)
+        terms = self.tokenize.tokenize_positional(search_text)
         start_time = time()
         print('Q: {}'.format(search_text.replace('\n', '')))
         if self.index_type == 'lnc.ltc':
-            pass
+            self.lncltc_search(terms)
         elif self.index_type == 'bm25':
             self.bm25_search(terms)
 
@@ -105,9 +108,6 @@ class Query:
         self.use_positions = \
             True if config['METADATA']['use_positions'] == 'True' else False
 
-    def term_tokenizer(self, term):
-        return self.tokenize.tokenize_positional(input_string=term)
-
     # BEST MATCH 25
     def bm25_search(self, terms):
         self.post_data = {}
@@ -119,22 +119,68 @@ class Query:
         # the PostingIndexBlock file
         self.store_files_to_open(terms)
 
-        for file_number in self.files_to_open.keys():
+        for file_number in self.files_to_open:
             file_name = self.posting_index_block_file.format(file_number)
             self.read_posting_index_block(
                 file_name, self.files_to_open[file_number])
 
-            for i in self.files_to_open[file_number]:
-                counter = self.files_to_open[file_number][i]
-                for post in self.post_data[i].keys():
-                    bm25_ranking[post] += self.post_data[i][post] * counter
+            for term in self.files_to_open[file_number]:
+                counter = self.files_to_open[file_number][term]
+                for doc_id in self.post_data[term]:
+                    bm25_ranking[doc_id] += self.post_data[term][doc_id] * counter
 
         results = []
         if not bm25_ranking:
             print("Nothing found!")
-        for i in sorted(bm25_ranking):
-            results.append(self.doc_keys[str(i)]['real_id']
-                           + ' -> ' + self.doc_keys[str(i)]['doc_name'])
+        for doc_id in sorted(bm25_ranking):
+            results.append(self.doc_keys[str(doc_id)]['real_id']
+                           + ' -> ' + self.doc_keys[str(doc_id)]['doc_name'])
+
+        if self.dump_results_file:
+            self.dump_query_result(results)
+
+        if self.cmd_results:
+            i = 0
+            #print('Q: {}'.format(self.to_search.replace('\n','')))
+            for result in results:
+                if i < 10:
+                    print(result)
+                i += 1
+
+    # BEST MATCH 25
+    def lncltc_search(self, terms):
+        self.post_data = {}
+
+        lnc_ltc_ranking = defaultdict(int)
+        self.files_to_open.clear()
+
+        # Stores all documents with their terms to optimize the search within
+        # the PostingIndexBlock file
+        self.store_files_to_open(terms)
+
+        Wtqs = {}
+        Wtq_norm = 0
+        for term in terms:
+            Wtq = 1 + self.log(len(terms[term]))
+            Wtq_norm += Wtq ** 2
+            Wtqs[term] = Wtq
+        Wtq_norm = sqrt(Wtq_norm)
+
+        for file_number in self.files_to_open:
+            file_name = self.posting_index_block_file.format(file_number)
+            self.read_posting_index_block(
+                file_name, self.files_to_open[file_number])
+
+            for term in self.files_to_open[file_number]:
+                for doc_id in self.post_data[term]:
+                    lnc_ltc_ranking[doc_id] += self.post_data[term][doc_id] * Wtqs[term] / Wtq_norm
+
+        results = []
+        if not lnc_ltc_ranking:
+            print("Nothing found!")
+        for doc_id in sorted(lnc_ltc_ranking):
+            results.append(self.doc_keys[str(doc_id)]['real_id']
+                           + ' -> ' + self.doc_keys[str(doc_id)]['doc_name'])
 
         if self.dump_results_file:
             self.dump_query_result(results)
@@ -189,3 +235,8 @@ class Query:
         if path.exists(self.query_result_file):
             file = open(self.query_result_file,"w")
             file.close()
+
+    def log(self, n: int) -> float:
+        if n not in self.logarithm:
+            self.logarithm[n] = log10(n)
+        return self.logarithm[n]

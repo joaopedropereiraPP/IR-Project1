@@ -1,29 +1,38 @@
-from indexer import Indexer
+from filecmp import cmp
 from query import Query
-from tokenizer import Tokenizer
 
-#term_to_search = input()
-#query = Query()
-# query.process_query(term_to_search)
-
-
-# dataset_name = 'amazon_reviews_us_Digital_Video_Games_v1_00'
+# nonpositional bm25 unit test
 dataset_name = 'index/unitTestFiles/bm25/nonpositional/'
-
 query = Query(data_path=dataset_name)
-
 query.process_query('beatriz diana')
+query.process_query('beatriz alfredo')
+new_file = dataset_name + 'query_result.txt'
+reference_file = dataset_name + 'query_result_reference.txt'
+assert cmp(new_file, reference_file, shallow=False)
 
+# positional bm25 unit test
+dataset_name = 'index/unitTestFiles/bm25/positional/'
+query = Query(data_path=dataset_name)
+query.process_query('beatriz diana')
+query.process_query('beatriz alfredo')
+new_file = dataset_name + 'query_result.txt'
+reference_file = dataset_name + 'query_result_reference.txt'
+assert cmp(new_file, reference_file, shallow=False)
 
-#initial_time = time()
+# nonpositional lnc.ltc unit test
+dataset_name = 'index/unitTestFiles/lnc.ltc/nonpositional/'
+query = Query(data_path=dataset_name)
+query.process_query('beatriz diana')
+query.process_query('beatriz alfredo')
+new_file = dataset_name + 'query_result.txt'
+reference_file = dataset_name + 'query_result_reference.txt'
+assert cmp(new_file, reference_file, shallow=False)
 
-# query.read_master_index()
-
-#print('Time to set up a query searcher (s): ' + str(time() - initial_time) )
-#print('Search term:')
-#word_to_search = input()
-# while word_to_search != '0':
-
-#    query.process_query(word_to_search)
-#    print('Search term ( 0 to exit ):')
-#    word_to_search = input()
+# positional lnc.ltc unit test
+dataset_name = 'index/unitTestFiles/lnc.ltc/positional/'
+query = Query(data_path=dataset_name)
+query.process_query('beatriz diana')
+query.process_query('beatriz alfredo')
+new_file = dataset_name + 'query_result.txt'
+reference_file = dataset_name + 'query_result_reference.txt'
+assert cmp(new_file, reference_file, shallow=False)
