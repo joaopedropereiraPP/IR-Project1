@@ -27,16 +27,11 @@ class Query:
         self.data_path = data_path
 
         # path files
-        self.doc_keys_folder_path = (
-            'index/' + path.basename(data_path).split('.')[0] + '/DocKeys.tsv')
-        self.master_index_folder_path = (
-            'index/' + path.basename(data_path).split('.')[0] + '/MasterIndex.tsv')
-        self.posting_index_block_file = 'index/' + \
-            path.basename(data_path).split('.')[0]+'/PostingIndexBlock{}.tsv'
-        self.configurations_folder_path = (
-            'index/' + path.basename(data_path).split('.')[0] + '/conf.ini')
-        self.query_result_file = 'index/' + \
-            path.basename(data_path).split('.')[0]+'/query_result.txt'
+        self.doc_keys_folder_path = data_path + '/DocKeys.tsv'
+        self.master_index_folder_path = data_path + '/MasterIndex.tsv'
+        self.posting_index_block_file = data_path + '/PostingIndexBlock{}.tsv'
+        self.configurations_folder_path = data_path + '/conf.ini'
+        self.query_result_file = data_path + '/query_result.txt'
 
         self.doc_keys = (defaultdict(lambda: defaultdict(lambda: [])))
         self.master_index = defaultdict(lambda: defaultdict(dict))
@@ -111,10 +106,7 @@ class Query:
             True if config['METADATA']['use_positions'] == 'True' else False
 
     def term_tokenizer(self, term):
-        if self.use_positions:
-            return self.tokenize.tokenize_positional(input_string=term)
-        else:
-            return self.tokenize.tokenize(input_string=term)
+        return self.tokenize.tokenize_positional(input_string=term)
 
     # BEST MATCH 25
     def bm25_search(self, terms):
@@ -168,7 +160,7 @@ class Query:
 
     def store_files_to_open(self, terms):
 
-        for term in terms.keys():
+        for term in terms:
             doc = self.master_index[term]['file_path']
             if doc:
                 self.files_to_open[doc][term] = len(terms[term])
@@ -194,5 +186,6 @@ class Query:
                     self.post_data[term] = post
 
     def clean_query_results_file(self):
-        file = open(self.query_result_file,"w")
-        file.close()
+        if path.exists(self.query_result_file):
+            file = open(self.query_result_file,"w")
+            file.close()

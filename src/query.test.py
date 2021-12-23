@@ -8,11 +8,11 @@ from tokenizer import Tokenizer
 
 
 # dataset_name = 'amazon_reviews_us_Digital_Video_Games_v1_00'
-dataset_name = 'data1'
+dataset_name = 'index/unitTestFiles/bm25/nonpositional/'
 
 query = Query(data_path=dataset_name)
 
-query.process_query()
+query.process_query('beatriz diana')
 
 
 #initial_time = time()
