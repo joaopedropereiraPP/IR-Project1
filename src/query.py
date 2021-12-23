@@ -97,6 +97,7 @@ class Query:
 
     def read_configurations(self):
         config = ConfigParser()
+        print(self.configurations_folder_path)
         config.read(self.configurations_folder_path)
         self.index_type = config['METADATA']['index_type']
         self.size_filter = int(config['METADATA']['size_filter'])
@@ -128,7 +129,7 @@ class Query:
 
         results = []
         if not bm25_ranking:
-            print("Nothing found!")
+            print('Nothing found!')
         for doc_id in sorted(bm25_ranking):
             results.append(self.doc_keys[doc_id][0]
                            + ' -> ' + self.doc_keys[doc_id][1] + f' {bm25_ranking[doc_id]}')
@@ -175,7 +176,7 @@ class Query:
 
         results = []
         if not lnc_ltc_ranking:
-            print("Nothing found!")
+            print('Nothing found!')
         for doc_id in sorted(lnc_ltc_ranking):
             results.append(self.doc_keys[doc_id][0]
                            + ' -> ' + self.doc_keys[doc_id][1] + f' {lnc_ltc_ranking[doc_id]}')
@@ -231,7 +232,7 @@ class Query:
 
     def clean_query_results_file(self):
         if path.exists(self.query_result_file):
-            file = open(self.query_result_file, "w")
+            file = open(self.query_result_file, 'w')
             file.close()
 
     def log(self, n: int) -> float:
