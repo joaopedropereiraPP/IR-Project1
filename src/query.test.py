@@ -7,7 +7,7 @@ from tokenizer import Tokenizer
 # query.process_query(term_to_search)
 
 
-dataset_name = 'amazon_reviews_us_Digital_Video_Games_v1_00'
+# dataset_name = 'amazon_reviews_us_Digital_Video_Games_v1_00'
 dataset_name = 'data1'
 
 query = Query(data_path=dataset_name)
