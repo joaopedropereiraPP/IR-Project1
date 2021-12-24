@@ -90,7 +90,7 @@ Searcher mode with loop:
 ```
 python3 src/main.py --mode searcher --data amazon_reviews_us_Digital_Music_Purchase_v1_00 --search_type loop --cmd_results
 ``` 
-Searcher mode with file and dumping results to file:
+Searcher mode with query file and dumping results to file:
 ```
 python3 src/main.py --mode searcher --data amazon_reviews_us_Digital_Music_Purchase_v1_00 --search_type file queries/queries.txt --dump_file
 ``` 
@@ -99,20 +99,34 @@ python3 src/main.py --mode searcher --data amazon_reviews_us_Digital_Music_Purch
 
 The sample amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz from https://s3.amazonaws.com/amazon-reviews-pds/readme.html was used.
 
-For the lnc.ltc index the indexing statistics were the following:
+For the lnc.ltc index type the results were the following:
+Configuration:
+* index_type	lnc.ltc
+* size_filter	3
+* stemmer_enabled	True
+* stopwords_path	content/stopwords.txt
+* use_positions	False
+Statistics:
 * Number of indexed documents: 1688884
 * Number of postings: 33469012
 * Vocabulary size: 271867
-* Total indexing time (s): 795.4470355510712
-* Total index size on disk (MB): 1117.278711
+* Total indexing time (s): 478.55587339401245
+* Total index size on disk (MB): 993.258436
 * Number of temporary index segments: 34
 
-For the BM25 index the indexing statistics were the following:
+For the BM25 index type the results were the following:
+Configuration:
+* index_type	bm25
+* size_filter	3
+* stemmer_enabled	True
+* stopwords_path	content/stopwords.txt
+* use_positions	False
+Statistics:
 * Number of indexed documents: 1688884
 * Number of postings: 33469012
 * Vocabulary size: 271867
-* Total indexing time (s): 800.52978682518
-* Total index size on disk (MB): 1093.343113
+* Total indexing time (s): 471.712206363678
+* Total index size on disk (MB): 969.322838
 * Number of temporary index segments: 34
 
 The ranking results for each index type were tested for the list of queries on the file `queries/queries.txt` and the results for each are on the subfolder `results`.
