@@ -30,69 +30,80 @@ def indexer_test(indexer, test_file, reference_index_folder):
     assert len(mismatching_files) + len(error_files) == 0
 
 
-# nonpositional raw index unit test
-tokenizer = Tokenizer(stopwords_path='', stemmer_enabled=True, size_filter=0)
-indexer = Indexer(tokenizer, 30)
+# # nonpositional raw index unit test
+# tokenizer = Tokenizer(stopwords_path='', stemmer_enabled=True, size_filter=0)
+# indexer = Indexer(tokenizer, 30)
 
-test_file = 'content/amazon_reviews_us_Digital_Video_Games_v1_00_sample.tsv.gz'
-reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/' \
-                         + 'nonpositional'
+# test_file = 'content/amazon_reviews_us_Digital_Video_Games_v1_00_sample.tsv.gz'
+# reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/' \
+#                          + 'nonpositional'
 
-indexer_test(indexer, test_file, reference_index_folder)
-
-
-# positional raw index unit test
-tokenizer = Tokenizer(stopwords_path='', stemmer_enabled=True, size_filter=0)
-indexer = Indexer(tokenizer, 30, use_positions=True)
-
-test_file = 'content/amazon_reviews_us_Digital_Video_Games_v1_00_sample.tsv.gz'
-reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/positional'
-
-indexer_test(indexer, test_file, reference_index_folder)
+# indexer_test(indexer, test_file, reference_index_folder)
 
 
-# nonpositional BM25 weighted index unit test
-tokenizer = Tokenizer(stopwords_path='content/stopwords.txt',
-                      stemmer_enabled=True, size_filter=3)
-indexer = IndexerBM25(tokenizer, use_positions=False)
+# # positional raw index unit test
+# tokenizer = Tokenizer(stopwords_path='', stemmer_enabled=True, size_filter=0)
+# indexer = Indexer(tokenizer, 30, use_positions=True)
 
-test_file = 'content/data1.tsv.gz'
-# indexer.index_data_source(test_file)
-reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/' \
-                         + 'nonpositional'
+# test_file = 'content/amazon_reviews_us_Digital_Video_Games_v1_00_sample.tsv.gz'
+# reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/positional'
 
-indexer_test(indexer, test_file, reference_index_folder)
+# indexer_test(indexer, test_file, reference_index_folder)
 
 
-# positional BM25 weighted index unit test
-tokenizer = Tokenizer(stopwords_path='content/stopwords.txt',
-                      stemmer_enabled=True, size_filter=3)
-indexer = IndexerBM25(tokenizer, use_positions=True)
+# # nonpositional BM25 weighted index unit test
+# tokenizer = Tokenizer(stopwords_path='content/stopwords.txt',
+#                       stemmer_enabled=True, size_filter=3)
+# indexer = IndexerBM25(tokenizer, use_positions=False)
 
-test_file = 'content/data1.tsv.gz'
-reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/positional'
+# test_file = 'content/data1.tsv.gz'
+# # indexer.index_data_source(test_file)
+# reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/' \
+#                          + 'nonpositional'
 
-indexer_test(indexer, test_file, reference_index_folder)
+# indexer_test(indexer, test_file, reference_index_folder)
 
 
-# nonpositional lnc.ltc weighted index unit test
-tokenizer = Tokenizer(stopwords_path='content/stopwords.txt',
-                      stemmer_enabled=True, size_filter=3)
-indexer = IndexerLncLtc(tokenizer, use_positions=False)
+# # positional BM25 weighted index unit test
+# tokenizer = Tokenizer(stopwords_path='content/stopwords.txt',
+#                       stemmer_enabled=True, size_filter=3)
+# indexer = IndexerBM25(tokenizer, use_positions=True)
 
-test_file = 'content/data1.tsv.gz'
-reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/' \
-                         + 'nonpositional'
+# test_file = 'content/data1.tsv.gz'
+# reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/positional'
 
-indexer_test(indexer, test_file, reference_index_folder)
+# indexer_test(indexer, test_file, reference_index_folder)
+
+
+# # nonpositional lnc.ltc weighted index unit test
+# tokenizer = Tokenizer(stopwords_path='content/stopwords.txt',
+#                       stemmer_enabled=True, size_filter=3)
+# indexer = IndexerLncLtc(tokenizer, use_positions=False)
+
+# test_file = 'content/data1.tsv.gz'
+# reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/' \
+#                          + 'nonpositional'
+
+# indexer_test(indexer, test_file, reference_index_folder)
+
+
+# # positional lnc.ltc weighted index unit test
+# tokenizer = Tokenizer(stopwords_path='content/stopwords.txt',
+#                       stemmer_enabled=True, size_filter=3)
+# indexer = IndexerLncLtc(tokenizer, use_positions=True)
+
+# test_file = 'content/data1.tsv.gz'
+# reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/positional'
+
+# indexer_test(indexer, test_file, reference_index_folder)
 
 
 # positional lnc.ltc weighted index unit test
 tokenizer = Tokenizer(stopwords_path='content/stopwords.txt',
                       stemmer_enabled=True, size_filter=3)
-indexer = IndexerLncLtc(tokenizer, use_positions=True)
+indexer = IndexerLncLtc(tokenizer, use_positions=False)
 
-test_file = 'content/data1.tsv.gz'
+test_file = 'content/amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz'
 reference_index_folder = f'index/unitTestFiles/{indexer.index_type}/positional'
 
 indexer_test(indexer, test_file, reference_index_folder)

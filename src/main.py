@@ -60,7 +60,7 @@ class Main:
         parser.add_argument('--method', help='Set the method',
                             type=str, metavar='raw/lnc.ltc/bm25')
         # path to new data file
-        parser.add_argument('--data_path', help='Set the path to the data',
+        parser.add_argument('--data_path', help='Set the path to the data, it should be relative to the program directory',
                             type=str, metavar='(path to data file (.gz))')
         # do not use stopwords list
         parser.add_argument('--nostopwords', help='Disable stop words',
@@ -90,10 +90,10 @@ class Main:
 
         # IF IS QUERY MODE
         # set folder name
-        parser.add_argument('--data', help='Set folder name',
+        parser.add_argument('--data', help="Folder that contains the index files for query mode, it should be a folder inside the 'index' subfolder of the program",
                             type=str)
         # set the search mode
-        parser.add_argument('--search_type', help='Choose the search mode',
+        parser.add_argument('--search_type', help="Choose the search mode, 'file (file-path)' to use a file with a list of queries as input, 'loop' to insert queries in a loop through the terminal (empty query to end loop)",
                             nargs='+', metavar='file (file-path)/loop')
 
         parser.add_argument('--dump_file',
@@ -235,6 +235,9 @@ class Main:
                 indexer = IndexerBM25(
                     tokenizer,  use_positions=self.use_positions)
                 indexer.index_data_source(self.data_path)
+                statistics = indexer.get_statistics()
+                for statistic in statistics:
+                    print(f'{statistic}: {statistics[statistic]}')
             elif self.index_type == 'lnc.ltc':
                 tokenizer = Tokenizer(stopwords_path=self.stopwords_path,
                                       stemmer_enabled=self.stemmer_enabled,
@@ -242,6 +245,9 @@ class Main:
                 indexer = IndexerLncLtc(
                     tokenizer,  use_positions=self.use_positions)
                 indexer.index_data_source(self.data_path)
+                statistics = indexer.get_statistics()
+                for statistic in statistics:
+                    print(f'{statistic}: {statistics[statistic]}')
 
         elif self.mode == 'searcher':
             query = Query(

@@ -34,11 +34,17 @@ class Query:
         self.data_path = data_path
 
         # path files
-        self.doc_keys_folder_path = data_path + '/DocKeys.tsv'
-        self.master_index_folder_path = data_path + '/MasterIndex.tsv'
-        self.posting_index_block_file = data_path + '/PostingIndexBlock{}.tsv'
-        self.configurations_folder_path = data_path + '/conf.ini'
-        self.query_result_file = data_path + '/query_result.txt'
+        # self.doc_keys_folder_path = data_path + '/DocKeys.tsv'
+        # self.master_index_folder_path = data_path + '/MasterIndex.tsv'
+        # self.posting_index_block_file = data_path + '/PostingIndexBlock{}.tsv'
+        # self.configurations_folder_path = path.join(data_path, 'conf.ini')
+        # self.query_result_file = data_path + '/query_result.txt'
+
+        self.doc_keys_folder_path = path.join('index', data_path, 'DocKeys.tsv')
+        self.master_index_folder_path = path.join('index', data_path, 'MasterIndex.tsv')
+        self.posting_index_block_file = path.join('index', data_path, 'PostingIndexBlock{}.tsv')
+        self.configurations_folder_path = path.join('index', data_path, 'conf.ini')
+        self.query_result_file = path.join('index', data_path, 'query_result.txt')
 
         self.doc_keys = {}
         self.master_index = {}
@@ -55,8 +61,8 @@ class Query:
 
         # initialize tokenizer
         self.tokenizer = Tokenizer(stopwords_path=self.stopwords_path,
-                                  stemmer_enabled=self.stemmer_enabled,
-                                  size_filter=self.size_filter)
+                                   stemmer_enabled=self.stemmer_enabled,
+                                   size_filter=self.size_filter)
 
         # update doc_keys
         self.read_doc_keys()
@@ -96,16 +102,19 @@ class Query:
                                              for value in row[1:3]]
 
     def read_configurations(self):
-        config = ConfigParser()
-        print(self.configurations_folder_path)
-        config.read(self.configurations_folder_path)
-        self.index_type = config['METADATA']['index_type']
-        self.size_filter = int(config['METADATA']['size_filter'])
-        self.stemmer_enabled = \
-            True if config['METADATA']['stemmer_enabled'] == 'True' else False
-        self.stopwords_path = config['METADATA']['stopwords_path']
-        self.use_positions = \
-            True if config['METADATA']['use_positions'] == 'True' else False
+        with open(self.configurations_folder_path, 'r') as file:
+            filecontent = csv.reader(file, delimiter='\t')
+            for row in filecontent:
+                if row[0] == 'index_type':
+                    self.index_type = row[1]
+                elif row[0] == 'size_filter':
+                    self.size_filter = int(row[1])
+                elif row[0] == 'stemmer_enabled':
+                    self.stemmer_enabled = bool(row[1])
+                elif row[0] == 'stopwords_path':
+                    self.stopwords_path = row[1]
+                elif row[0] == 'use_positions':
+                    self.use_positions = bool(row[1])
 
     def bm25_search(self, terms):
         self.post_data = {}
@@ -132,7 +141,7 @@ class Query:
             print('Nothing found!')
         for doc_id in sorted(bm25_ranking):
             results.append(self.doc_keys[doc_id][0]
-                           + ' -> ' + self.doc_keys[doc_id][1] + f' {bm25_ranking[doc_id]}')
+                           + ' -> ' + self.doc_keys[doc_id][1])
 
         if self.dump_results_file:
             self.dump_query_result(results)
@@ -179,7 +188,7 @@ class Query:
             print('Nothing found!')
         for doc_id in sorted(lnc_ltc_ranking):
             results.append(self.doc_keys[doc_id][0]
-                           + ' -> ' + self.doc_keys[doc_id][1] + f' {lnc_ltc_ranking[doc_id]}')
+                           + ' -> ' + self.doc_keys[doc_id][1])
 
         if self.dump_results_file:
             self.dump_query_result(results)

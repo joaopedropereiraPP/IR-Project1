@@ -145,7 +145,7 @@ class Indexer:
         end_time = time()
         self.indexing_time = end_time - start_time
         self.measure_index_file_size(index_folder)
-        self.vocabulary_size = len(self.doc_keys)
+        self.vocabulary_size = len(self.master_index)
 
     # merge temporary index blocks and create the final index blocks
     def merge_index_blocks(self, index_blocks_folder: str) -> None:
@@ -327,20 +327,15 @@ class Indexer:
         return self.doc_keys[document][2]
 
     def create_metadata(self, index_folder_path):
-        ini_file = index_folder_path + '/conf.ini'
-        config = ConfigParser()
-        config.read('content/FILE.INI')
-        config.add_section('METADATA')
-        config['METADATA']['index_type'] = self.index_type
-        config['METADATA']['size_filter'] = str(self.tokenizer.size_filter)
-        config['METADATA']['stemmer_enabled'] = str(
-            self.tokenizer.stemmer_enabled)
-        config['METADATA']['stopwords_path'] = str(
-            self.tokenizer.stopwords_path)
-        config['METADATA']['use_positions'] = str(self.use_positions)
-
-        with open(ini_file, 'w') as configfile:
-            config.write(configfile)
+        ini_file_path = index_folder_path + '/conf.ini'
+        with open(ini_file_path, mode='wt', encoding='utf8',
+                  newline='') as ini_file:
+            file_writer = writer(ini_file, delimiter='\t')
+            file_writer.writerow(['index_type', self.index_type])
+            file_writer.writerow(['size_filter', str(self.tokenizer.size_filter)])
+            file_writer.writerow(['stemmer_enabled', str(self.tokenizer.stemmer_enabled)])
+            file_writer.writerow(['stopwords_path', str(self.tokenizer.stopwords_path)])
+            file_writer.writerow(['use_positions', str(self.use_positions)])
 
     def create_postings(self, doc_id: int, doc_body: str) -> None:
         tokens = self.tokenizer.tokenize(doc_body)
