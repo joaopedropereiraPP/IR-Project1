@@ -162,7 +162,7 @@ class Main:
             if not args.no_stemmer:
                 self.stemmer_enabled = False
 
-            if not args.use_positions:
+            if args.use_positions:
                 self.use_positions = True
 
             if args.max_post:

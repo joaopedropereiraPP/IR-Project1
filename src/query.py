@@ -110,11 +110,17 @@ class Query:
                 elif row[0] == 'size_filter':
                     self.size_filter = int(row[1])
                 elif row[0] == 'stemmer_enabled':
-                    self.stemmer_enabled = bool(row[1])
+                    if row[1] == 'True':
+                        self.stemmer_enabled = True
+                    else:
+                        self.stemmer_enabled = False
                 elif row[0] == 'stopwords_path':
                     self.stopwords_path = row[1]
                 elif row[0] == 'use_positions':
-                    self.use_positions = bool(row[1])
+                    if row[1] == 'True':
+                        self.use_positions = True
+                    else:
+                        self.use_positions = False
 
     def bm25_search(self, terms):
         self.post_data = {}
@@ -139,7 +145,7 @@ class Query:
         results = []
         if not bm25_ranking:
             print('Nothing found!')
-        for doc_id in sorted(bm25_ranking):
+        for score, doc_id in sorted(((value, key) for (key,value) in bm25_ranking.items()), reverse=True):
             results.append(self.doc_keys[doc_id][0]
                            + ' -> ' + self.doc_keys[doc_id][1])
 
@@ -186,7 +192,7 @@ class Query:
         results = []
         if not lnc_ltc_ranking:
             print('Nothing found!')
-        for doc_id in sorted(lnc_ltc_ranking):
+        for score, doc_id in sorted(((value, key) for (key,value) in lnc_ltc_ranking.items()), reverse=True):
             results.append(self.doc_keys[doc_id][0]
                            + ' -> ' + self.doc_keys[doc_id][1])
 
