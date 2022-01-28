@@ -257,7 +257,9 @@ class Main:
                 to_search = input()
                 while (to_search != ''):
                     #query = Query(data_path = self.data)
-                    query.process_query(to_search)
+                    query_result = query.process_query(to_search)
+                    if self.cmd_results:
+                        self.show_results(to_search, query_result)
                     print('Words to search:')
                     to_search = input()
 
@@ -265,7 +267,19 @@ class Main:
                 lines = self.read_query_file()
                 for line in lines:
                     print('\n Q: {}'.format(line))
-                    query.process_query(line)
+                    query_result = query.process_query(line)
+                    if self.cmd_results:
+                        self.show_results(line.replace("\n", ""), query_result)
+
+
+    def show_results(self, query, results):
+        i = 0
+        print('Q: {}'.format(query))
+        for result in results:
+            if i < 10:
+                print(result)
+            i += 1
+        print("\n")
 
 
 if __name__ == '__main__':

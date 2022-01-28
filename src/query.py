@@ -79,14 +79,16 @@ class Query:
         self.search_text = search_text
         terms = self.tokenizer.tokenize_positional(search_text)
         start_time = time()
-        print('Q: {}'.format(search_text.replace('\n', '')))
+        result = {}
+        
         if self.index_type == 'lnc.ltc':
-            self.lncltc_search(terms)
+            result = self.lncltc_search(terms)
         elif self.index_type == 'bm25':
-            self.bm25_search(terms)
+            result = self.bm25_search(terms)
 
         total_time = time() - start_time
         print('Time used: {:0.3f}s \n\n'.format(total_time))
+        return result
 
     def read_doc_keys(self):
         with open(self.doc_keys_folder_path, 'r') as file:
@@ -152,13 +154,7 @@ class Query:
         if self.dump_results_file:
             self.dump_query_result(results)
 
-        if self.cmd_results:
-            i = 0
-            #print('Q: {}'.format(self.to_search.replace('\n','')))
-            for result in results:
-                if i < 10:
-                    print(result)
-                i += 1
+        return results
 
     def lncltc_search(self, terms):
         self.post_data = {}
@@ -199,13 +195,8 @@ class Query:
         if self.dump_results_file:
             self.dump_query_result(results)
 
-        if self.cmd_results:
-            i = 0
-            #print('Q: {}'.format(self.to_search.replace('\n','')))
-            for result in results:
-                if i < 10:
-                    print(result)
-                i += 1
+        return results
+
 
     def dump_query_result(self, results):
         with open(self.query_result_file, mode='a', encoding='utf8',
