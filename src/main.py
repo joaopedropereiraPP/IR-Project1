@@ -175,7 +175,7 @@ class Main:
             # data_path
             if args.data:
                 self.data = args.data
-                if not path.exists('index/' + self.data):
+                if not path.exists(self.data):
                     print('Folder does not exist!')
                     sys.exit()
             else:

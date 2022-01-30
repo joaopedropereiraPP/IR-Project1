@@ -40,11 +40,11 @@ class Query:
         # self.configurations_folder_path = path.join(data_path, 'conf.ini')
         # self.query_result_file = data_path + '/query_result.txt'
 
-        self.doc_keys_folder_path = path.join('index', data_path, 'DocKeys.tsv')
-        self.master_index_folder_path = path.join('index', data_path, 'MasterIndex.tsv')
-        self.posting_index_block_file = path.join('index', data_path, 'PostingIndexBlock{}.tsv')
-        self.configurations_folder_path = path.join('index', data_path, 'conf.ini')
-        self.query_result_file = path.join('index', data_path, 'query_result.txt')
+        self.doc_keys_folder_path = path.join(data_path, 'DocKeys.tsv')
+        self.master_index_folder_path = path.join(data_path, 'MasterIndex.tsv')
+        self.posting_index_block_file = path.join(data_path, 'PostingIndexBlock{}.tsv')
+        self.configurations_folder_path = path.join(data_path, 'conf.ini')
+        self.query_result_file = path.join(data_path, 'query_result.txt')
 
         self.doc_keys = {}
         self.master_index = {}
