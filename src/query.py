@@ -87,8 +87,7 @@ class Query:
             result = self.bm25_search(terms)
 
         total_time = time() - start_time
-        print('Time used: {:0.3f}s \n\n'.format(total_time))
-        return result
+        return result, total_time
 
     def read_doc_keys(self):
         with open(self.doc_keys_folder_path, 'r') as file:
@@ -145,8 +144,6 @@ class Query:
                     bm25_ranking[doc_id] += self.post_data[term][doc_id] * counter
 
         results = []
-        if not bm25_ranking:
-            print('Nothing found!')
         for score, doc_id in sorted(((value, key) for (key,value) in bm25_ranking.items()), reverse=True):
             results.append(self.doc_keys[doc_id][0]
                            + ' -> ' + self.doc_keys[doc_id][1])
@@ -186,8 +183,6 @@ class Query:
                     lnc_ltc_ranking[doc_id] += Wtq * Wtqs[term] / Wtq_norm
 
         results = []
-        if not lnc_ltc_ranking:
-            print('Nothing found!')
         for score, doc_id in sorted(((value, key) for (key,value) in lnc_ltc_ranking.items()), reverse=True):
             results.append(self.doc_keys[doc_id][0]
                            + ' -> ' + self.doc_keys[doc_id][1])

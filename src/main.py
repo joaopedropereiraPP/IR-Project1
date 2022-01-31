@@ -60,7 +60,7 @@ class Main:
         parser.add_argument('--method', help='Set the method',
                             type=str, metavar='raw/lnc.ltc/bm25')
         # path to new data file
-        parser.add_argument('--data_path', help='Set the path to the data, it should be relative to the program directory',
+        parser.add_argument('--data_path', help='Set the path to the data',
                             type=str, metavar='(path to data file (.gz))')
         # do not use stopwords list
         parser.add_argument('--nostopwords', help='Disable stop words',
@@ -90,7 +90,7 @@ class Main:
 
         # IF IS QUERY MODE
         # set folder name
-        parser.add_argument('--data', help="Folder that contains the index files for query mode, it should be a folder inside the 'index' subfolder of the program",
+        parser.add_argument('--data', help="Folder that contains the index files for query mode",
                             type=str)
         # set the search mode
         parser.add_argument('--search_type', help="Choose the search mode, 'file (file-path)' to use a file with a list of queries as input, 'loop' to insert queries in a loop through the terminal (empty query to end loop)",
@@ -253,33 +253,40 @@ class Main:
             query = Query(
                 data_path=self.data, dump_results_file=self.dump_results_file, cmd_results=self.cmd_results)
             if self.loop:
-                print('Words to search: ')
+                print('Words to search:')
                 to_search = input()
                 while (to_search != ''):
                     #query = Query(data_path = self.data)
-                    query_result = query.process_query(to_search)
+                    query_result, total_time = query.process_query(to_search)
                     if self.cmd_results:
+                        print()
                         self.show_results(to_search, query_result)
+                        print('Time used: {:0.3f}s \n'.format(total_time))
+
                     print('Words to search:')
                     to_search = input()
 
             else:
                 lines = self.read_query_file()
                 for line in lines:
-                    print('\n Q: {}'.format(line))
-                    query_result = query.process_query(line)
+                    query_result, total_time = query.process_query(line)
                     if self.cmd_results:
+                        print()
                         self.show_results(line.replace("\n", ""), query_result)
+                        print('Time used: {:0.3f}s \n'.format(total_time))
 
 
     def show_results(self, query, results):
         i = 0
         print('Q: {}'.format(query))
-        for result in results:
-            if i < 10:
-                print(result)
-            i += 1
-        print("\n")
+        if len(results) == 0:
+            print('Nothing found!')
+        else:
+            for result in results:
+                if i < 10:
+                    print(result)
+                i += 1
+        print()
 
 
 if __name__ == '__main__':
