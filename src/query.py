@@ -4,7 +4,7 @@ from configparser import ConfigParser
 from math import log10, sqrt
 from os import path
 from time import time
-from typing import Dict, List, DefaultDict
+from typing import Dict, List, DefaultDict, Tuple
 
 from postings import Posting, PostingPositional, PostingWeighted, \
                      PostingWeightedPositional
@@ -75,7 +75,7 @@ class Query:
         if self.dump_results_file:
             self.clean_query_results_file()
 
-    def process_query(self, search_text):
+    def process_query(self, search_text) -> Tuple[List[str], float]:
         self.search_text = search_text
         terms = self.tokenizer.tokenize_positional(search_text)
         start_time = time()
@@ -240,3 +240,41 @@ class Query:
         if n not in self.logarithm:
             self.logarithm[n] = log10(n)
         return self.logarithm[n]
+
+    def read_silver_standard_file(self, file_path: str) -> Dict[str, List[Tuple[str, int]]]:
+        """
+        reads the file with the silver standard results and returns a dict containing: {'queryText': [(doc1, rel), (doc2, rel), ...]}, where rel is the doc's relevance value from 1 to 3
+        """
+        pass
+
+    def evaluate_query_results(self, query_results: Tuple[List[str], float], standard_results: Dict[str, List[Tuple[str, int]]]) -> Dict[int, Dict[str, float]]:
+        """
+        evaluates the results for a single query.
+        It receives as a first argument the query results as returned by process_query() and as a second argument the silver standard results as returned by read_silver_standard_file(), and then returns a dict of dicts containing IR evalutation statistics considering the top 10, 20 and 50 docs in the ranking with the following structure:
+        {10: {'stat1': value, 'stat2': value, ..., 'time': value},
+         20: {'stat1': value, 'stat2': value, ..., 'time': value},
+         50: {'stat1': value, 'stat2': value, ..., 'time': value}}
+        """
+        pass
+
+    def evaluate_mean_statistics(self, query_statistics: List[Dict[int, Dict[str, float]]]) -> Dict[int, Dict[str, float]]:
+        """
+        receives a list of dicts as defined in evaluate_query_results() (one entry of the list for each query) and returns the average for each stat and the median latency and query throughput with the form:
+        {10: {'stat1': value, 'stat2': value, ..., 'Query throughput': value, 'Median query latency'},
+         20: {'stat1': value, 'stat2': value, ..., 'Query throughput': value, 'Median query latency'},
+         50: {'stat1': value, 'stat2': value, ..., 'Query throughput': value, 'Median query latency'},
+        """
+        pass
+
+    def evaluate_system(self, file_path: str) -> None:
+        """
+        the main method to evaluate the system
+        """
+        standard_results = self.read_silver_standard_file(file_path)
+
+        query_statistics = []   # a list with the statistics for each query
+        for query in standard_results:
+            query_results = self.process_query(query)
+            query_statistics.append(self.evaluate_query_results(query_results, standard_results[query]))
+
+        return self.evaluate_mean_statistics(query_statistics)
