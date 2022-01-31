@@ -4,7 +4,8 @@ from configparser import ConfigParser
 from math import log10, sqrt
 from os import path
 from time import time
-from typing import Dict, List, DefaultDict, Tuple
+from traceback import print_tb
+from typing import Dict, List, DefaultDict, Tuple, final
 
 from postings import Posting, PostingPositional, PostingWeighted, \
                      PostingWeightedPositional
@@ -145,8 +146,7 @@ class Query:
 
         results = []
         for score, doc_id in sorted(((value, key) for (key,value) in bm25_ranking.items()), reverse=True):
-            results.append(self.doc_keys[doc_id][0]
-                           + ' -> ' + self.doc_keys[doc_id][1])
+            results.append((self.doc_keys[doc_id][0], self.doc_keys[doc_id][1]))
 
         if self.dump_results_file:
             self.dump_query_result(results)
@@ -184,8 +184,7 @@ class Query:
 
         results = []
         for score, doc_id in sorted(((value, key) for (key,value) in lnc_ltc_ranking.items()), reverse=True):
-            results.append(self.doc_keys[doc_id][0]
-                           + ' -> ' + self.doc_keys[doc_id][1])
+            results.append((self.doc_keys[doc_id][0], self.doc_keys[doc_id][1]))
 
         if self.dump_results_file:
             self.dump_query_result(results)
@@ -245,7 +244,18 @@ class Query:
         """
         reads the file with the silver standard results and returns a dict containing: {'queryText': [(doc1, rel), (doc2, rel), ...]}, where rel is the doc's relevance value from 1 to 3
         """
-        pass
+        revelant_results = defaultdict(list)
+        with open(file_path, 'r') as file:
+            data = file.read().split("\n") # split lines
+            for line in data:
+                #update atual query
+                if line[:2] == "Q:":
+                    atual_query = i[2:]
+                elif line != "": # if the line is not the empty line
+                    doc = line.split("\t")[0] #split "\t" first element (document)
+                    rel = line.split("\t")[1] #split "\t" second element (document revelance)
+                    revelant_results[atual_query].append((doc, rel))
+        return revelant_results
 
     def evaluate_query_results(self, query_results: Tuple[List[str], float], standard_results: Dict[str, List[Tuple[str, int]]]) -> Dict[int, Dict[str, float]]:
         """
@@ -255,7 +265,53 @@ class Query:
          20: {'stat1': value, 'stat2': value, ..., 'time': value},
          50: {'stat1': value, 'stat2': value, ..., 'time': value}}
         """
-        pass
+        final_result = defaultdict(lambda : defaultdict(float))
+        tops = [10, 20, 50]
+
+        #Relevant
+        array_standard_results = []
+        for result in standard_results:
+            array_standard_results.append(tuple(result)[0])
+
+        #Query results
+        array_query_results = []
+        for result in query_results:
+            array_query_results.append(tuple(result)[0])
+
+        for topx in tops:
+            tp = 0
+            fn = 0
+            fp = 0
+            start_time = time()
+
+            for i in range(topx):
+                # Retrieved + Relevant   (TP)
+                if array_query_results[i] in array_standard_results:
+                    tp += 1
+                else: # Retrieved + Not Relevant (FP)
+                    fp +=1
+
+                # Not Retrieved + Relevant      (FN)
+                if array_standard_results[i] not in array_query_results[0:topx]:   ##NEED CHECK IF IS THAT (TOPX REVELANCE OR ALL RELECANCE)
+                    fn +=1
+
+            precision = tp / ( tp + fp )
+            recall = tp/ ( tp + fn )
+            fmeasure = ( 2 * recall * precision )/( recall + precision )
+            final_time = time() - start_time
+            ndcg = 0
+
+            dic_value = {
+                'precision': precision, 
+                'recall': recall, 
+                'f-measure':fmeasure, 
+                'time': final_time, 
+                'NDCG': ndcg
+                }
+
+            final_result[topx] = dic_value
+
+        return final_result    
 
     def evaluate_mean_statistics(self, query_statistics: List[Dict[int, Dict[str, float]]]) -> Dict[int, Dict[str, float]]:
         """
@@ -275,6 +331,6 @@ class Query:
         query_statistics = []   # a list with the statistics for each query
         for query in standard_results:
             query_results = self.process_query(query)
-            query_statistics.append(self.evaluate_query_results(query_results, standard_results[query]))
+            query_statistics.append(self.evaluate_query_results(query_results[0], standard_results[query]))
 
         return self.evaluate_mean_statistics(query_statistics)

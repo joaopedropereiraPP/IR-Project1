@@ -284,7 +284,8 @@ class Main:
         else:
             for result in results:
                 if i < 10:
-                    print(result)
+                    res = tuple(result)
+                    print(res[0] + " -> " + res[1])
                 i += 1
         print()
 
