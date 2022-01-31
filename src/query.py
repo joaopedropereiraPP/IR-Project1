@@ -4,7 +4,6 @@ from configparser import ConfigParser
 from math import log10, sqrt
 from os import path
 from time import time
-from traceback import print_tb
 from typing import Dict, List, DefaultDict, Tuple, final
 
 from postings import Posting, PostingPositional, PostingWeighted, \
