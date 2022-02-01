@@ -178,13 +178,8 @@ class Query:
 
             for term in self.files_to_open[file_number]:
                 for doc_id in self.post_data[term]:
-<<<<<<< HEAD
                     Wtd = self.post_data[term][doc_id][0]
                     lnc_ltc_ranking[doc_id] += Wtd * Wtqs[term] / Wtq_norm
-=======
-                    Wtq = self.post_data[term][doc_id][0]
-                    lnc_ltc_ranking[doc_id] += Wtq * Wtqs[term] / Wtq_norm
->>>>>>> 5a21ac82459c94913f5f7a52538657d921b055c3
 
         results = []
         for score, doc_id in sorted(((value, key) for (key,value) in lnc_ltc_ranking.items()), reverse=True):
