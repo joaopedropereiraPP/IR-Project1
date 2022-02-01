@@ -88,7 +88,6 @@ class Query:
             result = self.bm25_search(terms)
 
         total_time = perf_counter() - start_time
-        print(total_time)
         return result, total_time
 
     def read_doc_keys(self):
@@ -245,7 +244,7 @@ class Query:
         """
         reads the file with the silver standard results and returns a dict containing: {'queryText': [(doc1, rel), (doc2, rel), ...]}, where rel is the doc's relevance value from 1 to 3
         """
-        revelant_results = defaultdict(list)
+        silver_standard_results = defaultdict(list)
         with open(file_path, 'r') as file:
             data = file.read().split("\n")
             for line in data:
@@ -255,24 +254,31 @@ class Query:
                 elif line != "": # if the line is not empty line
                     doc_id = line.split("\t")[0]
                     doc_relevance = line.split("\t")[1]
-                    revelant_results[atual_query].append((doc_id, doc_relevance))
-        return revelant_results
+                    silver_standard_results[atual_query].append((doc_id, doc_relevance))
+        return silver_standard_results
 
-    def evaluate_query_results(self, query_results: Tuple[List[Tuple[str, str]], float], standard_results: Dict[str, List[Tuple[str, int]]]) -> Dict[int, Dict[str, float]]:
+    def evaluate_query_results(self, query_str, standard_results: Dict[str, List[Tuple[str, int]]]) -> Dict[int, Dict[str, float]]:
         """
         evaluates the results for a single query.
-        It receives as a first argument the query results as returned by process_query() and as a second argument the silver standard results as returned by read_silver_standard_file(), and then returns a dict of dicts containing IR evalutation statistics considering the top 10, 20 and 50 docs in the ranking with the following structure:
+        It receives as a first argument the query string and as a second argument the silver standard results as returned by read_silver_standard_file(), and then returns a dict of dicts containing IR evalutation statistics considering the top 10, 20 and 50 docs in the ranking with the following structure:
         {10: {'stat1': value, 'stat2': value, ..., 'time': value},
          20: {'stat1': value, 'stat2': value, ..., 'time': value},
          50: {'stat1': value, 'stat2': value, ..., 'time': value}}
         """
+        # repeat the query 10 times to stabilize time metrics
+        query_times = []
+        for i in range(10):
+            query_ranking, query_time = self.process_query(query_str)
+            query_times.append(query_time)
+        mean_query_time = mean(query_times)
+
         final_result = defaultdict(lambda : defaultdict(float))
         rank_nrs = [10, 20, 50]
 
         for rank_nr in rank_nrs:
 
-            standard_results_set = {res[0] for res in standard_results}
-            query_results_set = {res[0] for res in query_results[0][:rank_nr]}
+            standard_results_set = {doc_id for doc_id, relevance in standard_results}
+            query_results_set = {doc_id for doc_id, doc_title in query_ranking[:rank_nr]}
 
             tp = len(query_results_set & standard_results_set)
             fn = len(standard_results_set - query_results_set)
@@ -287,7 +293,7 @@ class Query:
                 'Precision': precision,
                 'Recall': recall,
                 'F-measure':fmeasure,
-                'time': query_results[1],
+                'time': mean_query_time,
                 'NDCG': ndcg
                 }
 
@@ -318,7 +324,7 @@ class Query:
 
         # calculate statistics that depend on time
         for top_nr in mean_statistics:
-            mean_statistics[top_nr]['Average query throughput (s)'] = 1 / mean(mean_statistics[top_nr]['time'])
+            mean_statistics[top_nr]['Average query throughput (queries/s)'] = 1 / mean(mean_statistics[top_nr]['time'])
             mean_statistics[top_nr]['Median query latency (ms)'] = median(mean_statistics[top_nr]['time']) * 1000
             del mean_statistics[top_nr]['time']
 
@@ -332,7 +338,6 @@ class Query:
 
         query_statistics = []   # a list with the statistics for each query
         for query in standard_results:
-            query_results = self.process_query(query)
-            query_statistics.append(self.evaluate_query_results(query_results, standard_results[query]))
+            query_statistics.append(self.evaluate_query_results(query, standard_results[query]))
 
         return self.evaluate_mean_statistics(query_statistics)
