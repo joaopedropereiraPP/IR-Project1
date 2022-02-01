@@ -22,14 +22,16 @@ class Query:
     logarithm: Dict[int, float]
     files_to_open: DefaultDict[int, DefaultDict[str, int]]
     post_data: Dict[str, Dict[int, float]]
+    positional_boost_enabled: bool
 
     def __init__(self, data_path, stopwords_path='', stemmer_enabled=True,
                  size_filter=0, use_positions=False, dump_results_file=True,
-                 cmd_results=True):
+                 cmd_results=True, positional_boost_enabled=True):
         self.logarithm = {}
         self.search_text = ''
         self.dump_results_file = dump_results_file
         self.cmd_results = cmd_results
+        self.positional_boost_enabled = positional_boost_enabled
 
         # data
         self.data_path = data_path
@@ -49,6 +51,7 @@ class Query:
 
         self.doc_keys = {}
         self.master_index = {}
+        self.post_data = {}
 
         # configurations
         self.index_type = 'raw'
@@ -125,8 +128,6 @@ class Query:
                         self.use_positions = False
 
     def bm25_search(self, terms):
-        self.post_data = {}
-
         bm25_ranking = defaultdict(float)
         self.files_to_open.clear()
 
@@ -142,7 +143,7 @@ class Query:
             for term in self.files_to_open[file_number]:
                 counter = self.files_to_open[file_number][term]
                 for doc_id in self.post_data[term]:
-                    bm25_ranking[doc_id] += self.post_data[term][doc_id] * counter
+                    bm25_ranking[doc_id] += self.post_data[term][doc_id][0] * counter
 
         results = []
         for score, doc_id in sorted(((value, key) for (key,value) in bm25_ranking.items()), reverse=True):
@@ -154,8 +155,6 @@ class Query:
         return results
 
     def lncltc_search(self, terms):
-        self.post_data = {}
-
         lnc_ltc_ranking = defaultdict(float)
         self.files_to_open.clear()
 
@@ -179,8 +178,8 @@ class Query:
 
             for term in self.files_to_open[file_number]:
                 for doc_id in self.post_data[term]:
-                    Wtq = self.post_data[term][doc_id]
-                    lnc_ltc_ranking[doc_id] += Wtq * Wtqs[term] / Wtq_norm
+                    Wtd = self.post_data[term][doc_id][0]
+                    lnc_ltc_ranking[doc_id] += Wtd * Wtqs[term] / Wtq_norm
 
         results = []
         for score, doc_id in sorted(((value, key) for (key,value) in lnc_ltc_ranking.items()), reverse=True):
@@ -224,10 +223,10 @@ class Query:
                         if self.use_positions:
                             posting = PostingWeightedPositional.from_string(
                                 content[n])
-                            post[posting.doc_id] = posting.weight
+                            post[posting.doc_id] = (posting.weight, posting.positions)
                         else:
                             posting = PostingWeighted.from_string(content[n])
-                            post[posting.doc_id] = posting.weight
+                            post[posting.doc_id] = (posting.weight,)
                     self.post_data[term] = post
 
     def clean_query_results_file(self):
