@@ -13,7 +13,8 @@ query = Query(data_path=dataset_name)
 
 # print(query.read_silver_standard_file('queries/queries.relevance.txt'))
 # query.read_silver_standard_file('queries/queries.relevance.data1.txt')
-print(query.evaluate_system('queries/queries.relevance.data1.txt'))
+# print(query.evaluate_system('queries/queries.relevance.data1.txt'))
+print(query.calculate_positional_boost(3))
 
 # # positional bm25 unit test
 # dataset_name = 'index/unitTestFiles/bm25/positional/'
