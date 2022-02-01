@@ -3,7 +3,7 @@ from collections import defaultdict
 from configparser import ConfigParser
 from math import log10, sqrt
 from os import path
-from time import time
+from time import time, perf_counter
 from typing import Dict, List, DefaultDict, Tuple, final
 from statistics import mean, median
 
@@ -79,7 +79,7 @@ class Query:
     def process_query(self, search_text) -> Tuple[List[str], float]:
         self.search_text = search_text
         terms = self.tokenizer.tokenize_positional(search_text)
-        start_time = time()
+        start_time = perf_counter()
         result = {}
         
         if self.index_type == 'lnc.ltc':
@@ -87,7 +87,8 @@ class Query:
         elif self.index_type == 'bm25':
             result = self.bm25_search(terms)
 
-        total_time = time() - start_time
+        total_time = perf_counter() - start_time
+        print(total_time)
         return result, total_time
 
     def read_doc_keys(self):
@@ -252,9 +253,9 @@ class Query:
                 if line[:2] == "Q:":
                     atual_query = line[2:]
                 elif line != "": # if the line is not empty line
-                    doc = line.split("\t")[0] # split "\t" first element (document)
-                    rel = line.split("\t")[1] # split "\t" second element (document revelance)
-                    revelant_results[atual_query].append((doc, rel))
+                    doc_id = line.split("\t")[0]
+                    doc_relevance = line.split("\t")[1]
+                    revelant_results[atual_query].append((doc_id, doc_relevance))
         return revelant_results
 
     def evaluate_query_results(self, query_results: Tuple[List[Tuple[str, str]], float], standard_results: Dict[str, List[Tuple[str, int]]]) -> Dict[int, Dict[str, float]]:
@@ -268,58 +269,31 @@ class Query:
         final_result = defaultdict(lambda : defaultdict(float))
         rank_nrs = [10, 20, 50]
 
-        #Relevant
-        # array_standard_results = []
-        # for result in standard_results:
-        #     array_standard_results.append(result[0])
-
-        #Query results
-        # array_query_results = []
-        # for result in query_results:
-        #     array_query_results.append(result[0])
-
         for rank_nr in rank_nrs:
-            # rank_nr = min(len(array_standard_results), rank_nr)
-            # tp = 0
-            # fn = 0
-            # fp = 0
-            start_time = time()
 
-            array_standard_results = {res[0] for res in standard_results[:rank_nr]}
-            array_query_results = {res[0] for res in query_results[0][:rank_nr]}
+            standard_results_set = {res[0] for res in standard_results[:rank_nr]}
+            query_results_set = {res[0] for res in query_results[0][:rank_nr]}
 
-            # for i in range(rank_nr):
-            #     # Retrieved + Relevant   (TP)
-            #     if  array_query_results[i] in array_standard_results:
-            #         tp += 1
-            #     else: # Retrieved + Not Relevant (FP)
-            #         fp +=1
-
-            #     # Not Retrieved + Relevant      (FN)
-            #     if array_standard_results[i] not in array_query_results[0:rank_nr]:   ##NEED CHECK IF IS THAT (TOPX REVELANCE OR ALL RELECANCE)
-            #         fn +=1
-
-            tp = len(array_query_results & array_standard_results)
-            fn = len(array_standard_results - array_query_results)
-            fp = len(array_query_results - array_standard_results)
+            tp = len(query_results_set & standard_results_set)
+            fn = len(standard_results_set - query_results_set)
+            fp = len(query_results_set - standard_results_set)
 
             precision = tp / ( tp + fp )
             recall = tp/ ( tp + fn )
             fmeasure = ( 2 * recall * precision )/( recall + precision )
-            final_time = time() - start_time
             ndcg = 0
 
             dic_value = {
-                'precision': precision, 
-                'recall': recall, 
-                'f-measure':fmeasure, 
-                'time': final_time, 
+                'Precision': precision,
+                'Recall': recall,
+                'F-measure':fmeasure,
+                'time': query_results[1],
                 'NDCG': ndcg
                 }
 
             final_result[rank_nr] = dic_value
 
-        return final_result    
+        return final_result
 
     def evaluate_mean_statistics(self, query_statistics: List[Dict[int, Dict[str, float]]]) -> Dict[int, Dict[str, float]]:
         """
@@ -328,6 +302,7 @@ class Query:
          20: {'stat1': value, 'stat2': value, ..., 'Query throughput': value, 'Median query latency'},
          50: {'stat1': value, 'stat2': value, ..., 'Query throughput': value, 'Median query latency'},
         """
+        # aggregate query statistics in lists
         mean_statistics = {}
         for top_nr in query_statistics[0]:
             mean_statistics[top_nr] = {}
@@ -335,16 +310,18 @@ class Query:
                 mean_statistics[top_nr][stat] = []
                 for query in query_statistics:
                     mean_statistics[top_nr][stat].append(query[top_nr][stat])
-        
+
+        # calculate the mean for all statistics except time
         for top_nr in mean_statistics:
             for stat in [st for st in  mean_statistics[top_nr] if st != 'time']:
                 mean_statistics[top_nr][stat] = mean(mean_statistics[top_nr][stat])
 
+        # calculate statistics that depend on time
         for top_nr in mean_statistics:
-            mean_statistics[top_nr]['Average query throughput'] = 1 / mean(mean_statistics[top_nr]['time'])
-            mean_statistics[top_nr]['Median query latency'] = median(mean_statistics[top_nr]['time'])
+            mean_statistics[top_nr]['Average query throughput (s)'] = 1 / mean(mean_statistics[top_nr]['time'])
+            mean_statistics[top_nr]['Median query latency (ms)'] = median(mean_statistics[top_nr]['time']) * 1000
             del mean_statistics[top_nr]['time']
-        
+
         return mean_statistics
 
     def evaluate_system(self, file_path: str) -> None:
