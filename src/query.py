@@ -48,6 +48,7 @@ class Query:
         self.posting_index_block_file = path.join(data_path, 'PostingIndexBlock{}.tsv')
         self.configurations_folder_path = path.join(data_path, 'conf.ini')
         self.query_result_file = path.join(data_path, 'query_result.txt')
+        self.evaluation_result_file = path.join(data_path, 'evaluation_query_result.txt')
 
         self.doc_keys = {}
         self.master_index = {}
