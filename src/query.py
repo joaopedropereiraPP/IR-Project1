@@ -271,7 +271,7 @@ class Query:
 
         for rank_nr in rank_nrs:
 
-            standard_results_set = {res[0] for res in standard_results[:rank_nr]}
+            standard_results_set = {res[0] for res in standard_results}
             query_results_set = {res[0] for res in query_results[0][:rank_nr]}
 
             tp = len(query_results_set & standard_results_set)
