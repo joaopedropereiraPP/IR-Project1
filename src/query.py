@@ -1,14 +1,12 @@
 import csv
 from collections import defaultdict
-from configparser import ConfigParser
 from math import log2, log10, sqrt
 from os import path
 from statistics import mean, median
-from time import perf_counter, time
-from typing import DefaultDict, Dict, List, Tuple, final
+from time import perf_counter
+from typing import DefaultDict, Dict, List, Tuple
 
-from postings import (Posting, PostingPositional, PostingWeighted,
-                      PostingWeightedPositional)
+from postings import PostingWeighted, PostingWeightedPositional
 from tokenizer import Tokenizer
 
 
@@ -23,15 +21,17 @@ class Query:
     files_to_open: DefaultDict[int, DefaultDict[str, int]]
     post_data: Dict[str, Dict[int, float]]
     positional_boost_enabled: bool
+    span_size: int
 
     def __init__(self, data_path, stopwords_path='', stemmer_enabled=True,
                  size_filter=0, use_positions=False, dump_results_file=True,
-                 cmd_results=True, positional_boost_enabled=True):
+                 cmd_results=True, positional_boost_enabled=True, span_size=4):
         self.logarithm = {}
         self.search_text = ''
         self.dump_results_file = dump_results_file
         self.cmd_results = cmd_results
         self.positional_boost_enabled = positional_boost_enabled
+        self.span_size = span_size
 
         # data
         self.data_path = data_path
@@ -145,6 +145,17 @@ class Query:
                 for doc_id in self.post_data[term]:
                     bm25_ranking[doc_id] += self.post_data[term][doc_id][0] * counter
 
+        # apply positional boost
+        if self.use_positions and self.positional_boost_enabled:
+            positions_index = defaultdict(list)
+            for term in self.post_data:
+                for doc_id in self.post_data[term]:
+                    for term_position in self.post_data[term][doc_id][1]:
+                        positions_index[doc_id].append((term_position, term))
+            for doc_id in positions_index:
+                positions_index[doc_id].sort(key=lambda x: x[0])
+                bm25_ranking[doc_id] += self.calculate_positional_boost(positions_index[doc_id])
+
         results = []
         for score, doc_id in sorted(((value, key) for (key,value) in bm25_ranking.items()), reverse=True):
             results.append((self.doc_keys[doc_id][0], self.doc_keys[doc_id][1]))
@@ -181,6 +192,17 @@ class Query:
                     Wtd = self.post_data[term][doc_id][0]
                     lnc_ltc_ranking[doc_id] += Wtd * Wtqs[term] / Wtq_norm
 
+        # apply positional boost
+        if self.use_positions and self.positional_boost_enabled:
+            positions_index = defaultdict(list)
+            for term in self.post_data:
+                for doc_id in self.post_data[term]:
+                    for term_position in self.post_data[term][doc_id][1]:
+                        positions_index[doc_id].append((term_position, term))
+            for doc_id in positions_index:
+                positions_index[doc_id].sort(key=lambda x: x[0])
+                lnc_ltc_ranking[doc_id] += self.calculate_positional_boost(positions_index[doc_id])
+
         results = []
         for score, doc_id in sorted(((value, key) for (key,value) in lnc_ltc_ranking.items()), reverse=True):
             results.append((self.doc_keys[doc_id][0], self.doc_keys[doc_id][1]))
@@ -190,6 +212,11 @@ class Query:
 
         return results
 
+    def calculate_positional_boost(self, positional_index: List[Tuple[int, str]]) -> float:
+        if self.index_type == 'lnc.ltc':
+            return 0.0
+        elif self.index_type == 'bm25':
+            return 0.0
 
     def dump_query_result(self, results):
         with open(self.query_result_file, mode='a', encoding='utf8',
