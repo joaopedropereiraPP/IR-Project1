@@ -283,7 +283,8 @@ class Query:
             for rank in range(2, min(rank_nr + 1, len(standard_results) + 1)):
                 dcg_norm += standard_results[rank - 1][1] / log2(rank)
 
-            dcg = standard_results[standard_results_list.index(query_ranking[0][0])][1]
+            dcg = standard_results[standard_results_list.index(query_ranking[0][0])][1] if query_ranking[0][0] in standard_results_list else 0
+
             avg_precision = 0
             for rank in range(1, min(rank_nr + 1, len(query_ranking) + 1)):
                 query_results_set = {doc_id for doc_id, doc_title in query_ranking[:rank]}
