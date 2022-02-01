@@ -269,32 +269,39 @@ class Query:
         rank_nrs = [10, 20, 50]
 
         #Relevant
-        array_standard_results = []
-        for result in standard_results:
-            array_standard_results.append(result[0])
+        # array_standard_results = []
+        # for result in standard_results:
+        #     array_standard_results.append(result[0])
 
         #Query results
-        array_query_results = []
-        for result in query_results:
-            array_query_results.append(result[0])
+        # array_query_results = []
+        # for result in query_results:
+        #     array_query_results.append(result[0])
 
         for rank_nr in rank_nrs:
             # rank_nr = min(len(array_standard_results), rank_nr)
-            tp = 0
-            fn = 0
-            fp = 0
+            # tp = 0
+            # fn = 0
+            # fp = 0
             start_time = time()
 
-            for i in range(rank_nr):
-                # Retrieved + Relevant   (TP)
-                if  array_query_results[i] in array_standard_results:
-                    tp += 1
-                else: # Retrieved + Not Relevant (FP)
-                    fp +=1
+            array_standard_results = {res[0] for res in standard_results[:rank_nr]}
+            array_query_results = {res[0] for res in query_results[0][:rank_nr]}
 
-                # Not Retrieved + Relevant      (FN)
-                if array_standard_results[i] not in array_query_results[0:rank_nr]:   ##NEED CHECK IF IS THAT (TOPX REVELANCE OR ALL RELECANCE)
-                    fn +=1
+            # for i in range(rank_nr):
+            #     # Retrieved + Relevant   (TP)
+            #     if  array_query_results[i] in array_standard_results:
+            #         tp += 1
+            #     else: # Retrieved + Not Relevant (FP)
+            #         fp +=1
+
+            #     # Not Retrieved + Relevant      (FN)
+            #     if array_standard_results[i] not in array_query_results[0:rank_nr]:   ##NEED CHECK IF IS THAT (TOPX REVELANCE OR ALL RELECANCE)
+            #         fn +=1
+
+            tp = len(array_query_results & array_standard_results)
+            fn = len(array_standard_results - array_query_results)
+            fp = len(array_query_results - array_standard_results)
 
             precision = tp / ( tp + fp )
             recall = tp/ ( tp + fn )
