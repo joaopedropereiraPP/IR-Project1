@@ -1,14 +1,14 @@
 import csv
 from collections import defaultdict
 from configparser import ConfigParser
-from math import log10, sqrt
+from math import log2, log10, sqrt
 from os import path
-from time import time, perf_counter
-from typing import Dict, List, DefaultDict, Tuple, final
 from statistics import mean, median
+from time import perf_counter, time
+from typing import DefaultDict, Dict, List, Tuple, final
 
-from postings import Posting, PostingPositional, PostingWeighted, \
-                     PostingWeightedPositional
+from postings import (Posting, PostingPositional, PostingWeighted,
+                      PostingWeightedPositional)
 from tokenizer import Tokenizer
 
 
@@ -244,20 +244,21 @@ class Query:
         """
         reads the file with the silver standard results and returns a dict containing: {'queryText': [(doc1, rel), (doc2, rel), ...]}, where rel is the doc's relevance value from 1 to 3
         """
-        silver_standard_results = defaultdict(list)
+        silver_standard_results = {}
         with open(file_path, 'r') as file:
-            data = file.read().split("\n")
-            for line in data:
+            lines = file.read().split("\n")
+            for line in lines:
                 # detect query terms
                 if line[:2] == "Q:":
-                    atual_query = line[2:]
+                    query_str = line[2:]
+                    silver_standard_results[query_str] = []
                 elif line != "": # if the line is not empty line
                     doc_id = line.split("\t")[0]
-                    doc_relevance = line.split("\t")[1]
-                    silver_standard_results[atual_query].append((doc_id, doc_relevance))
+                    doc_relevance = int(line.split("\t")[1])
+                    silver_standard_results[query_str].append((doc_id, doc_relevance))
         return silver_standard_results
 
-    def evaluate_query_results(self, query_str, standard_results: Dict[str, List[Tuple[str, int]]]) -> Dict[int, Dict[str, float]]:
+    def evaluate_query_results(self, query_str, standard_results: List[Tuple[str, int]]) -> Dict[int, Dict[str, float]]:
         """
         evaluates the results for a single query.
         It receives as a first argument the query string and as a second argument the silver standard results as returned by read_silver_standard_file(), and then returns a dict of dicts containing IR evalutation statistics considering the top 10, 20 and 50 docs in the ranking with the following structure:
@@ -272,34 +273,49 @@ class Query:
             query_times.append(query_time)
         mean_query_time = mean(query_times)
 
-        final_result = defaultdict(lambda : defaultdict(float))
-        rank_nrs = [10, 20, 50]
+        standard_results_set = {doc_id for doc_id, doc_relevance in standard_results}
+        standard_results_list = [doc_id for doc_id, doc_relevance in standard_results]
 
-        for rank_nr in rank_nrs:
+        query_evaluation = defaultdict(lambda: defaultdict(float))
+        for rank_nr in [10, 20, 50]:
 
-            standard_results_set = {doc_id for doc_id, relevance in standard_results}
-            query_results_set = {doc_id for doc_id, doc_title in query_ranking[:rank_nr]}
+            dcg_norm = standard_results[0][1]
+            for rank in range(2, min(rank_nr + 1, len(standard_results) + 1)):
+                dcg_norm += standard_results[rank - 1][1] / log2(rank)
 
+            dcg = standard_results[standard_results_list.index(query_ranking[0][0])][1]
+            avg_precision = 0
+            for rank in range(1, min(rank_nr + 1, len(query_ranking) + 1)):
+                query_results_set = {doc_id for doc_id, doc_title in query_ranking[:rank]}
+
+                if query_ranking[rank - 1][0] in standard_results_set:
+                    tp = len(query_results_set & standard_results_set)
+                    fp = len(query_results_set - standard_results_set)
+                    precision = tp / (tp + fp)
+                    avg_precision += precision
+                    if rank > 1:
+                        dcg += standard_results[standard_results_list.index(query_ranking[rank - 1][0])][1] / log2(rank)
+
+            avg_precision = avg_precision / len(standard_results)
             tp = len(query_results_set & standard_results_set)
-            fn = len(standard_results_set - query_results_set)
             fp = len(query_results_set - standard_results_set)
-
-            precision = tp / ( tp + fp )
-            recall = tp/ ( tp + fn )
-            fmeasure = ( 2 * recall * precision )/( recall + precision )
-            ndcg = 0
+            fn = len(standard_results_set - query_results_set)
+            precision = tp / (tp + fp)
+            recall = tp / (tp + fn)
+            fmeasure = (2 * recall * precision)/(recall + precision)
 
             dic_value = {
                 'Precision': precision,
                 'Recall': recall,
                 'F-measure':fmeasure,
+                'Average precision': avg_precision,
+                'NDCG': dcg / dcg_norm,
                 'time': mean_query_time,
-                'NDCG': ndcg
-                }
+            }
 
-            final_result[rank_nr] = dic_value
+            query_evaluation[rank_nr] = dic_value
 
-        return final_result
+        return query_evaluation
 
     def evaluate_mean_statistics(self, query_statistics: List[Dict[int, Dict[str, float]]]) -> Dict[int, Dict[str, float]]:
         """
