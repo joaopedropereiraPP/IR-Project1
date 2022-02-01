@@ -384,3 +384,18 @@ class Query:
             query_statistics.append(self.evaluate_query_results(query, standard_results[query]))
 
         return self.evaluate_mean_statistics(query_statistics)
+
+    def show_evaluation_results(self, result):
+        for rank in result.keys():
+            print("\nTOP {}".format(rank))
+            for stat in result[rank].keys():
+                print("{}: {:.2f}".format(stat, result[rank][stat]))
+
+    def dump_evaluation_result(self, result):
+        print(self.evaluation_result_file)
+        with open(self.evaluation_result_file, mode='w', encoding='utf8', newline='') as f:
+            for rank in result.keys():
+                f.writelines("TOP {} \n".format(rank))
+                for stat in result[rank].keys():
+                    f.writelines("{}: {:.2f}\n".format(stat, result[rank][stat]))
+                f.write('\n')
