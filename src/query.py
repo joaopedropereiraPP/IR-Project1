@@ -5,6 +5,7 @@ from math import log10, sqrt
 from os import path
 from time import time
 from typing import Dict, List, DefaultDict, Tuple, final
+from statistics import mean, median
 
 from postings import Posting, PostingPositional, PostingWeighted, \
                      PostingWeightedPositional
@@ -198,7 +199,7 @@ class Query:
             i = 0
             for result in results:
                 if i < 100:
-                    f.writelines(result)
+                    f.writelines(result[0])
                     f.write('\n')
                 i += 1
 
@@ -245,18 +246,18 @@ class Query:
         """
         revelant_results = defaultdict(list)
         with open(file_path, 'r') as file:
-            data = file.read().split("\n") # split lines
+            data = file.read().split("\n")
             for line in data:
-                #update atual query
+                # detect query terms
                 if line[:2] == "Q:":
-                    atual_query = i[2:]
-                elif line != "": # if the line is not the empty line
-                    doc = line.split("\t")[0] #split "\t" first element (document)
-                    rel = line.split("\t")[1] #split "\t" second element (document revelance)
+                    atual_query = line[2:]
+                elif line != "": # if the line is not empty line
+                    doc = line.split("\t")[0] # split "\t" first element (document)
+                    rel = line.split("\t")[1] # split "\t" second element (document revelance)
                     revelant_results[atual_query].append((doc, rel))
         return revelant_results
 
-    def evaluate_query_results(self, query_results: Tuple[List[str], float], standard_results: Dict[str, List[Tuple[str, int]]]) -> Dict[int, Dict[str, float]]:
+    def evaluate_query_results(self, query_results: Tuple[List[Tuple[str, str]], float], standard_results: Dict[str, List[Tuple[str, int]]]) -> Dict[int, Dict[str, float]]:
         """
         evaluates the results for a single query.
         It receives as a first argument the query results as returned by process_query() and as a second argument the silver standard results as returned by read_silver_standard_file(), and then returns a dict of dicts containing IR evalutation statistics considering the top 10, 20 and 50 docs in the ranking with the following structure:
@@ -265,33 +266,34 @@ class Query:
          50: {'stat1': value, 'stat2': value, ..., 'time': value}}
         """
         final_result = defaultdict(lambda : defaultdict(float))
-        tops = [10, 20, 50]
+        rank_nrs = [10, 20, 50]
 
         #Relevant
         array_standard_results = []
         for result in standard_results:
-            array_standard_results.append(tuple(result)[0])
+            array_standard_results.append(result[0])
 
         #Query results
         array_query_results = []
         for result in query_results:
-            array_query_results.append(tuple(result)[0])
+            array_query_results.append(result[0])
 
-        for topx in tops:
+        for rank_nr in rank_nrs:
+            # rank_nr = min(len(array_standard_results), rank_nr)
             tp = 0
             fn = 0
             fp = 0
             start_time = time()
 
-            for i in range(topx):
+            for i in range(rank_nr):
                 # Retrieved + Relevant   (TP)
-                if array_query_results[i] in array_standard_results:
+                if  array_query_results[i] in array_standard_results:
                     tp += 1
                 else: # Retrieved + Not Relevant (FP)
                     fp +=1
 
                 # Not Retrieved + Relevant      (FN)
-                if array_standard_results[i] not in array_query_results[0:topx]:   ##NEED CHECK IF IS THAT (TOPX REVELANCE OR ALL RELECANCE)
+                if array_standard_results[i] not in array_query_results[0:rank_nr]:   ##NEED CHECK IF IS THAT (TOPX REVELANCE OR ALL RELECANCE)
                     fn +=1
 
             precision = tp / ( tp + fp )
@@ -308,7 +310,7 @@ class Query:
                 'NDCG': ndcg
                 }
 
-            final_result[topx] = dic_value
+            final_result[rank_nr] = dic_value
 
         return final_result    
 
@@ -319,7 +321,24 @@ class Query:
          20: {'stat1': value, 'stat2': value, ..., 'Query throughput': value, 'Median query latency'},
          50: {'stat1': value, 'stat2': value, ..., 'Query throughput': value, 'Median query latency'},
         """
-        pass
+        mean_statistics = {}
+        for top_nr in query_statistics[0]:
+            mean_statistics[top_nr] = {}
+            for stat in query_statistics[0][top_nr]:
+                mean_statistics[top_nr][stat] = []
+                for query in query_statistics:
+                    mean_statistics[top_nr][stat].append(query[top_nr][stat])
+        
+        for top_nr in mean_statistics:
+            for stat in [st for st in  mean_statistics[top_nr] if st != 'time']:
+                mean_statistics[top_nr][stat] = mean(mean_statistics[top_nr][stat])
+
+        for top_nr in mean_statistics:
+            mean_statistics[top_nr]['Average query throughput'] = 1 / mean(mean_statistics[top_nr]['time'])
+            mean_statistics[top_nr]['Median query latency'] = median(mean_statistics[top_nr]['time'])
+            del mean_statistics[top_nr]['time']
+        
+        return mean_statistics
 
     def evaluate_system(self, file_path: str) -> None:
         """
@@ -330,6 +349,6 @@ class Query:
         query_statistics = []   # a list with the statistics for each query
         for query in standard_results:
             query_results = self.process_query(query)
-            query_statistics.append(self.evaluate_query_results(query_results[0], standard_results[query]))
+            query_statistics.append(self.evaluate_query_results(query_results, standard_results[query]))
 
         return self.evaluate_mean_statistics(query_statistics)
