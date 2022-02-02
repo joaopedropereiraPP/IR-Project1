@@ -138,8 +138,7 @@ class Query:
 
         for file_number in self.files_to_open:
             file_name = self.posting_index_block_file.format(int(file_number))
-            self.read_posting_index_block(
-                file_name, self.files_to_open[file_number])
+            self.read_posting_index_block(file_name, self.files_to_open[file_number])
 
             for term in self.files_to_open[file_number]:
                 counter = self.files_to_open[file_number][term]
@@ -183,22 +182,24 @@ class Query:
             Wtqs[term] = Wtq
         Wtq_norm = sqrt(Wtq_norm)
 
+        posts = {}  #####################
         for file_number in self.files_to_open:
             file_name = self.posting_index_block_file.format(file_number)
-            self.read_posting_index_block(
-                file_name, self.files_to_open[file_number])
+            posts.update(self.post_data) #####################
+
+            self.read_posting_index_block(file_name, self.files_to_open[file_number])
 
             for term in self.files_to_open[file_number]:
                 for doc_id in self.post_data[term]:
                     Wtd = self.post_data[term][doc_id][0]
                     lnc_ltc_ranking[doc_id] += Wtd * Wtqs[term] / Wtq_norm
-
+                    
         # apply positional boost
         if self.use_positions and self.positional_boost_enabled:
             positions_index = defaultdict(list)
-            for term in self.post_data:
-                for doc_id in self.post_data[term]:
-                    for term_position in self.post_data[term][doc_id][1]:
+            for term in posts:
+                for doc_id in posts[term]:
+                    for term_position in posts[term][doc_id][1]:
                         positions_index[doc_id].append((term_position, term))
             for doc_id in positions_index:
                 positions_index[doc_id].sort(key=lambda x: x[0])
