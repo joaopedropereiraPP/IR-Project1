@@ -138,8 +138,11 @@ class Query:
         # the PostingIndexBlock file
         self.store_files_to_open(terms)
 
+        posts = {}
         for file_number in self.files_to_open:
             file_name = self.posting_index_block_file.format(int(file_number))
+            posts.update(self.post_data)
+            
             self.read_posting_index_block(file_name, self.files_to_open[file_number])
 
             for term in self.files_to_open[file_number]:
@@ -150,13 +153,17 @@ class Query:
         # apply positional boost
         if self.use_positions and self.positional_boost_enabled:
             positions_index = defaultdict(list)
-            for term in self.post_data:
-                for doc_id in self.post_data[term]:
-                    for term_position in self.post_data[term][doc_id][1]:
+            query_term_list = []
+            for term in terms:
+                for term_position in terms[term]:
+                    query_term_list.append(term)
+            for term in posts:
+                for doc_id in posts[term]:
+                    for term_position in posts[term][doc_id][1]:
                         positions_index[doc_id].append((term_position, term))
             for doc_id in positions_index:
                 positions_index[doc_id].sort(key=lambda x: x[0])
-                bm25_ranking[doc_id] += self.calculate_positional_boost(positions_index[doc_id])
+                bm25_ranking[doc_id] += self.calculate_positional_boost(query_term_list, positions_index[doc_id])
 
         results = []
         for score, doc_id in sorted(((value, key) for (key,value) in bm25_ranking.items()), reverse=True):
