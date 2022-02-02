@@ -30,7 +30,7 @@ class Main:
         self.stopwords_path = 'content/stopwords.txt'
         self.minimum_word_size = 3
         self.stemmer_enabled = True
-        self.use_positions = False
+        self.disable_positions = False
         self.max_post = 1000000
 
         # searcher mode
@@ -40,6 +40,8 @@ class Main:
         self.query_file = ''
         self.dump_results_file = False
         self.cmd_results = False
+        self.disable_boost = False
+        self.span_size = 4
 
         self.parser = ArgumentParser()
         self.tokenizer = Tokenizer(stopwords_path=self.stopwords_path,
@@ -47,7 +49,7 @@ class Main:
                                    size_filter=self.minimum_word_size)
         self.indexer = Indexer(tokenizer=self.tokenizer,
                                max_postings_per_temp_block=self.max_post,
-                               use_positions=self.use_positions)
+                               use_positions= not self.disable_positions)
 
     def parse_args(self):
         parser = ArgumentParser()
@@ -80,8 +82,8 @@ class Main:
         parser.add_argument('--no_stemmer', help='Disable stemmer',
                             action='store_false')
         # do not use positions
-        parser.add_argument('--use_positions',
-                            help='Enable positions indexing',
+        parser.add_argument('--disable_positions',
+                            help='Disable positions indexing',
                             action='store_true')
         # maximum postings per block for the SPIMI
         parser.add_argument('--max_post',
@@ -93,8 +95,8 @@ class Main:
         parser.add_argument('--data', help="Folder that contains the index files for query mode",
                             type=str)
         # set the search mode
-        parser.add_argument('--search_type', help="Choose the search mode, 'file (file-path)' to use a file with a list of queries as input, 'loop' to insert queries in a loop through the terminal (empty query to end loop)",
-                            nargs='+', metavar='file (file-path)/loop')
+        parser.add_argument('--search_type', help="Choose the search mode, 'file (file-path)' to use a file with a list of queries as input, 'loop' to insert queries in a loop through the terminal (empty query to end loop) or 'evaluation (file-path)' to use a file with a list of relevant queries as input",
+                            nargs='+', metavar='file (file-path) / loop / evaluation (file_path)')
 
         parser.add_argument('--dump_file',
                             help='Enable to generate file with results',
@@ -103,6 +105,15 @@ class Main:
         parser.add_argument('--cmd_results',
                             help='Enable to show the results on terminal',
                             action='store_true')
+        
+        parser.add_argument('--disable_boost',
+                            help='Disable boost query',
+                            action='store_true')
+
+        parser.add_argument('--span_size',
+                            help='Set span size to booster',
+                            type=int, metavar='(integer number)')
+
         # Set the query file
         #parser.add_argument('--query_file', help='Choose the path to search', type=str, metavar='(txt file)')
 
@@ -162,8 +173,8 @@ class Main:
             if not args.no_stemmer:
                 self.stemmer_enabled = False
 
-            if args.use_positions:
-                self.use_positions = True
+            #disable positions
+            self.disable_positions = args.disable_positions
 
             if args.max_post:
                 self.max_post = args.max_post
@@ -182,6 +193,13 @@ class Main:
                 parser.error('Search mode requires --data and --search_type.')
                 sys.exit()
 
+            #disable boost
+            self.disable_boost = args.disable_boost
+
+            #span size
+            if args.span_size:
+                self.span_size = args.span_size
+
             # search_type
             if args.search_type:
                 if args.search_type[0] == 'loop':
@@ -195,13 +213,23 @@ class Main:
                     if not path.exists(self.query_file):
                         print('Query file does not exist!')
                         sys.exit()
+                elif args.search_type[0] == 'evaluation':
+                    self.evaluation = True
+                    if not args.search_type[1]:
+                        parser.error(
+                            'Type of search "evaluation" required the file path (txt)')
+                        sys.exit()
+                    self.query_file = args.search_type[1]
+                    if not path.exists(self.query_file):
+                        print('Queries Relevant file does not exist!')
+                        sys.exit()
                 else:
                     parser.error(
-                        'Search type requires one of two options: file / loop.')
+                        'Search type requires one of three options: file / loop / evaluation.')
                     sys.exit()
             else:
                 parser.error(
-                    'Search type requires one of two options: file / loop.')
+                    'Search type requires one of three options: file / loop / evaluation.')
                 sys.exit()
 
             if not args.dump_file and not args.cmd_results:
@@ -233,7 +261,7 @@ class Main:
                                       stemmer_enabled=self.stemmer_enabled,
                                       size_filter=self.minimum_word_size)
                 indexer = IndexerBM25(
-                    tokenizer,  use_positions=self.use_positions)
+                    tokenizer,  use_positions= not self.disable_positions)
                 indexer.index_data_source(self.data_path)
                 statistics = indexer.get_statistics()
                 for statistic in statistics:
@@ -243,7 +271,7 @@ class Main:
                                       stemmer_enabled=self.stemmer_enabled,
                                       size_filter=self.minimum_word_size)
                 indexer = IndexerLncLtc(
-                    tokenizer,  use_positions=self.use_positions)
+                    tokenizer,  use_positions= not self.disable_positions)
                 indexer.index_data_source(self.data_path)
                 statistics = indexer.get_statistics()
                 for statistic in statistics:
@@ -251,7 +279,8 @@ class Main:
 
         elif self.mode == 'searcher':
             query = Query(
-                data_path=self.data, dump_results_file=self.dump_results_file, cmd_results=self.cmd_results)
+                data_path=self.data, dump_results_file=self.dump_results_file, cmd_results=self.cmd_results, 
+                positional_boost_enabled = not self.disable_boost, span_size = self.span_size)
             if self.loop:
                 print('Words to search:')
                 to_search = input()
@@ -265,7 +294,12 @@ class Main:
 
                     print('Words to search:')
                     to_search = input()
-
+            elif self.evaluation:
+                evaluation = query.evaluate_system(self.query_file)
+                if self.cmd_results:
+                    query.show_evaluation_results(evaluation)
+                if self.dump_results_file:
+                    query.dump_evaluation_result(evaluation)
             else:
                 lines = self.read_query_file()
                 for line in lines:
