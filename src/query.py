@@ -359,7 +359,10 @@ class Query:
             fn = len(standard_results_set - query_results_set)
             precision = tp / (tp + fp)
             recall = tp / (tp + fn)
-            fmeasure = (2 * recall * precision)/(recall + precision)
+            if tp > 0:
+                fmeasure = (2 * recall * precision)/(recall + precision)
+            else:
+                fmeasure = 0
 
             dic_value = {
                 'Precision': precision,
