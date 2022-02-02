@@ -1,4 +1,4 @@
-# IR-Project2
+# IR-Project3
 
 ## The goal
 
