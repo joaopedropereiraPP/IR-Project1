@@ -1,10 +1,12 @@
 import csv
 from collections import defaultdict
+import difflib
 from math import log2, log10, sqrt
 from os import path
 from statistics import mean, median
 from time import perf_counter
 from typing import DefaultDict, Dict, List, Tuple
+from difflib import SequenceMatcher
 
 from postings import PostingWeighted, PostingWeightedPositional
 from tokenizer import Tokenizer
@@ -36,13 +38,7 @@ class Query:
         # data
         self.data_path = data_path
 
-        # path files
-        # self.doc_keys_folder_path = data_path + '/DocKeys.tsv'
-        # self.master_index_folder_path = data_path + '/MasterIndex.tsv'
-        # self.posting_index_block_file = data_path + '/PostingIndexBlock{}.tsv'
-        # self.configurations_folder_path = path.join(data_path, 'conf.ini')
-        # self.query_result_file = data_path + '/query_result.txt'
-
+        # files
         self.doc_keys_folder_path = path.join(data_path, 'DocKeys.tsv')
         self.master_index_folder_path = path.join(data_path, 'MasterIndex.tsv')
         self.posting_index_block_file = path.join(data_path, 'PostingIndexBlock{}.tsv')
@@ -50,6 +46,7 @@ class Query:
         self.query_result_file = path.join(data_path, 'query_result.txt')
         self.evaluation_result_file = path.join(data_path, 'evaluation_query_result.txt')
 
+        # memory indexes
         self.doc_keys = {}
         self.master_index = {}
         self.post_data = {}
@@ -60,6 +57,11 @@ class Query:
         self.stemmer_enabled = True
         self.stopwords_path = ''
         self.use_positions = False
+
+        # positional boosting tuning parameters
+        self.max_boost_lncltc = 0.01
+        self.max_boost_bm25 = 0.01
+        self.query_similarity_factor = 3
 
         # update configurations
         self.read_configurations()
@@ -182,10 +184,10 @@ class Query:
             Wtqs[term] = Wtq
         Wtq_norm = sqrt(Wtq_norm)
 
-        posts = {}  #####################
+        posts = {}
         for file_number in self.files_to_open:
             file_name = self.posting_index_block_file.format(file_number)
-            posts.update(self.post_data) #####################
+            posts.update(self.post_data)
 
             self.read_posting_index_block(file_name, self.files_to_open[file_number])
 
@@ -193,17 +195,21 @@ class Query:
                 for doc_id in self.post_data[term]:
                     Wtd = self.post_data[term][doc_id][0]
                     lnc_ltc_ranking[doc_id] += Wtd * Wtqs[term] / Wtq_norm
-                    
+
         # apply positional boost
         if self.use_positions and self.positional_boost_enabled:
             positions_index = defaultdict(list)
+            query_term_list = []
+            for term in terms:
+                for term_position in terms[term]:
+                    query_term_list.append(term)
             for term in posts:
                 for doc_id in posts[term]:
                     for term_position in posts[term][doc_id][1]:
                         positions_index[doc_id].append((term_position, term))
             for doc_id in positions_index:
                 positions_index[doc_id].sort(key=lambda x: x[0])
-                lnc_ltc_ranking[doc_id] += self.calculate_positional_boost(positions_index[doc_id])
+                lnc_ltc_ranking[doc_id] += self.calculate_positional_boost(query_term_list, positions_index[doc_id])
 
         results = []
         for score, doc_id in sorted(((value, key) for (key,value) in lnc_ltc_ranking.items()), reverse=True):
@@ -214,11 +220,11 @@ class Query:
 
         return results
 
-    def calculate_positional_boost(self, positions_list: List[Tuple[int, str]]) -> float:
+    def calculate_positional_boost(self, query_term_list: List[str], positions_list: List[Tuple[int, str]]) -> float:
         if self.index_type == 'lnc.ltc':
-            max_boost = 0.01
+            max_boost = self.max_boost_lncltc
         elif self.index_type == 'bm25':
-            max_boost = 0.01
+            max_boost = self.max_boost_bm25
 
         total_boost = 0
         i = 0
@@ -244,7 +250,8 @@ class Query:
             span = contained_terms[-1][0] - contained_terms[0][0]
             # print('terms:', contained_terms, 'nr_terms:', len(contained_terms), 'span:', span)
             if len(contained_terms) > 0 and span > 0:
-                total_boost += len(contained_terms) / span * max_boost
+                query_similarity = SequenceMatcher(None, query_term_list, [term[1] for term in contained_terms]).ratio() * self.query_similarity_factor
+                total_boost += len(contained_terms) / span * query_similarity * max_boost
 
         return total_boost
 

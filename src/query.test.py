@@ -40,9 +40,8 @@ from query import Query
 # print(query_result[:11])
 
 dataset_name = 'index/amazon_reviews_us_Digital_Music_Purchase_v1_00'
-query = Query(data_path=dataset_name, dump_results_file=False, positional_boost_enabled=True, span_size=20)
+query = Query(data_path=dataset_name, dump_results_file=False, positional_boost_enabled=True, span_size=4)
 print(query.evaluate_system('queries/queries.relevance.txt'))
-
 # CHANGE TO PERFORM 10 QUERIES AGAIN WHEN EVALUATING!!
 
 
