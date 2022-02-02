@@ -51,13 +51,15 @@ optional arguments:
                         Set the maximum for the word size filter
   --no_word_size        Disable word size filter
   --no_stemmer          Disable stemmer
-  --use_positions       Enable positions indexing
+  --disablw_positions   Disable positions indexing
   --max_post MAX_POST   Set the maximum postings per block
   --data DATA           Folder that contains the index files for query mode, it should be a folder inside the 'index' subfolder of the program
-  --search_type file (file-path)/loop [file (file-path)/loop ...]
-                        Choose the search mode, 'file (file-path)' to use a file with a list of queries as input, 'loop' to insert queries in a loop through the terminal (empty query to end loop)
+  --search_type file (file-path)/loop [file (file-path)/ evaluation (file_path) ...]
+                        Choose the search mode, 'file (file-path)' to use a file with a list of queries as input, 'loop' to insert queries in a loop through the terminal (empty query to end loop) and 'evaluation (file)' to evaluate retrieval engine using the relevance scores provided by input file
   --dump_file           Enable to generate file with results
   --cmd_results         Enable to show the results on terminal
+  --disable_boost       Disable boost to evaluation search_type
+  --span_size           Set the span value to use on boost 
 ```
 
 * The data_path option is the path to the Amazon review data file to be indexed.
@@ -66,7 +68,10 @@ optional arguments:
 * The word_size option sets the word size filter value, words with smaller or equal size than the value set here are filtered. The defaut is 3.
 * The no_word_size option disables the word size filter.
 * The no_stemmer option disables stemming.
-* The use_positions option enables/disables term positions on the index, default is off.
+* The disable_positions option enables/disables term positions on the index, default is off.
+* The disable_boost option enables/disables boost on the evaluation search_type, default is off.
+* The span_size option sets the size of span to use on boost, default is 4.
+
 
 After running the program the data file starts to be indexed using the SPIMI approach and the index files are created as described in the Design section. When it is done some statistics on the process are returned and the user is asked to enter the search term, for which the document frequency and final index file block number in which its postings are contained is returned, that is, the `#` in PostingIndex#.tsv, as described previously.
 
@@ -88,11 +93,19 @@ python3 src/main.py --mode indexer --method lnc.ltc --data_path content/amazon_r
 ```
 Searcher mode with loop:
 ```
-python3 src/main.py --mode searcher --data amazon_reviews_us_Digital_Music_Purchase_v1_00 --search_type loop --cmd_results
+python3 src/main.py --mode searcher --data index/amazon_reviews_us_Digital_Music_Purchase_v1_00 --search_type loop --cmd_results
 ``` 
 Searcher mode with query file and dumping results to file:
 ```
-python3 src/main.py --mode searcher --data amazon_reviews_us_Digital_Music_Purchase_v1_00 --search_type file queries/queries.txt --dump_file
+python3 src/main.py --mode searcher --data index/amazon_reviews_us_Digital_Music_Purchase_v1_00 --search_type file queries/queries.txt --dump_file
+``` 
+Searcher mode with evaluation, show results on terminal and boost is disabled:
+```
+python3 src/main.py --mode searcher --data index/amazon_reviews_us_Digital_Music_Purchase_v1_00 --search_type evaluation queries/queries.relevance.txt --cmd_results --disable_boost
+``` 
+Searcher mode with evaluation, dumping results to file and boost is enabled:
+```
+python3 src/main.py --mode searcher --data index/amazon_reviews_us_Digital_Music_Purchase_v1_00 --search_type evaluation queries/queries.relevance.txt --dump_file 
 ``` 
 
 ## The results
