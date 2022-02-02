@@ -212,11 +212,39 @@ class Query:
 
         return results
 
-    def calculate_positional_boost(self, positional_index: List[Tuple[int, str]]) -> float:
+    def calculate_positional_boost(self, positions_list: List[Tuple[int, str]]) -> float:
         if self.index_type == 'lnc.ltc':
-            return 0.0
+            max_boost = 0.01
         elif self.index_type == 'bm25':
-            return 0.0
+            max_boost = 0.01
+
+        total_boost = 0
+        i = 0
+        while i + 1 < len(positions_list):
+            contained_terms = []
+            contained_terms.append(positions_list[i])
+
+            # consider all terms after the current one that are within the span
+            start_position = positions_list[i][0]
+            i += 1
+            while i < len(positions_list) and positions_list[i][0] - start_position <= self.span_size:
+                contained_terms.append(positions_list[i])
+                i += 1
+
+            # consider all terms after the last one within the span that fall within the span centered on that last one
+            start_position = positions_list[i - 1][0]
+            # i += 1
+            # print(positions_list[i][0] - start_position)
+            while i < len(positions_list) and positions_list[i][0] - start_position <= self.span_size:
+                contained_terms.append(positions_list[i])
+                i += 1
+
+            span = contained_terms[-1][0] - contained_terms[0][0]
+            # print('terms:', contained_terms, 'nr_terms:', len(contained_terms), 'span:', span)
+            if len(contained_terms) > 0 and span > 0:
+                total_boost += len(contained_terms) / span * max_boost
+
+        return total_boost
 
     def dump_query_result(self, results):
         with open(self.query_result_file, mode='a', encoding='utf8',
@@ -294,7 +322,7 @@ class Query:
         """
         # repeat the query 10 times to stabilize time metrics
         query_times = []
-        for i in range(10):
+        for i in range(1):
             query_ranking, query_time = self.process_query(query_str)
             query_times.append(query_time)
         mean_query_time = mean(query_times)
