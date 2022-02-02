@@ -163,6 +163,8 @@ These results were produced on a machine with the following specifications:
 
 There were improvements by using positional boosting to most query metrics, especially for lnc.ltc. The default values defined in the program were used for these results, with 0.02 as the upper limit for boosting and a max span size of 4.
 
+To stabilize time metrics each query in the silver standard was performed 10 times.
+
 #### lnc.ltc without positional boosting
 TOP 10 
 
