@@ -51,7 +51,7 @@ optional arguments:
                         Set the maximum for the word size filter
   --no_word_size        Disable word size filter
   --no_stemmer          Disable stemmer
-  --disablw_positions   Disable positions indexing
+  --disable_positions   Disable positions indexing
   --max_post MAX_POST   Set the maximum postings per block
   --data DATA           Folder that contains the index files for query mode, it should be a folder inside the 'index' subfolder of the program
   --search_type file (file-path)/loop [file (file-path)/ evaluation (file_path) ...]
