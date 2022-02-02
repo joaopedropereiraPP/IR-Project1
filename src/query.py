@@ -1,6 +1,5 @@
 import csv
 from collections import defaultdict
-import difflib
 from math import log2, log10, sqrt
 from os import path
 from statistics import mean, median
@@ -59,9 +58,8 @@ class Query:
         self.use_positions = False
 
         # positional boosting tuning parameters
-        self.max_boost_lncltc = 0.01
-        self.max_boost_bm25 = 0.01
-        self.query_similarity_factor = 3
+        self.max_boost_lncltc = 0.02
+        self.max_boost_bm25 = 0.02
 
         # update configurations
         self.read_configurations()
@@ -142,7 +140,7 @@ class Query:
         for file_number in self.files_to_open:
             file_name = self.posting_index_block_file.format(int(file_number))
             posts.update(self.post_data)
-            
+
             self.read_posting_index_block(file_name, self.files_to_open[file_number])
 
             for term in self.files_to_open[file_number]:
@@ -248,16 +246,14 @@ class Query:
 
             # consider all terms after the last one within the span that fall within the span centered on that last one
             start_position = positions_list[i - 1][0]
-            # i += 1
-            # print(positions_list[i][0] - start_position)
+            
             while i < len(positions_list) and positions_list[i][0] - start_position <= self.span_size:
                 contained_terms.append(positions_list[i])
                 i += 1
 
             span = contained_terms[-1][0] - contained_terms[0][0]
-            # print('terms:', contained_terms, 'nr_terms:', len(contained_terms), 'span:', span)
             if len(contained_terms) > 0 and span > 0:
-                query_similarity = SequenceMatcher(None, query_term_list, [term[1] for term in contained_terms]).ratio() * self.query_similarity_factor
+                query_similarity = SequenceMatcher(None, query_term_list, [term[1] for term in contained_terms]).ratio()
                 total_boost += len(contained_terms) / span * query_similarity * max_boost
 
         return total_boost
@@ -312,7 +308,7 @@ class Query:
 
     def read_silver_standard_file(self, file_path: str) -> Dict[str, List[Tuple[str, int]]]:
         """
-        reads the file with the silver standard results and returns a dict containing: {'queryText': [(doc1, rel), (doc2, rel), ...]}, where rel is the doc's relevance value from 1 to 3
+        reads the file with the silver standard results
         """
         silver_standard_results = {}
         with open(file_path, 'r') as file:
@@ -331,14 +327,10 @@ class Query:
     def evaluate_query_results(self, query_str, standard_results: List[Tuple[str, int]]) -> Dict[int, Dict[str, float]]:
         """
         evaluates the results for a single query.
-        It receives as a first argument the query string and as a second argument the silver standard results as returned by read_silver_standard_file(), and then returns a dict of dicts containing IR evalutation statistics considering the top 10, 20 and 50 docs in the ranking with the following structure:
-        {10: {'stat1': value, 'stat2': value, ..., 'time': value},
-         20: {'stat1': value, 'stat2': value, ..., 'time': value},
-         50: {'stat1': value, 'stat2': value, ..., 'time': value}}
         """
         # repeat the query 10 times to stabilize time metrics
         query_times = []
-        for i in range(1):
+        for i in range(10):
             query_ranking, query_time = self.process_query(query_str)
             query_times.append(query_time)
         mean_query_time = mean(query_times)
@@ -393,10 +385,7 @@ class Query:
 
     def evaluate_mean_statistics(self, query_statistics: List[Dict[int, Dict[str, float]]]) -> Dict[int, Dict[str, float]]:
         """
-        receives a list of dicts as defined in evaluate_query_results() (one entry of the list for each query) and returns the average for each stat and the median latency and query throughput with the form:
-        {10: {'stat1': value, 'stat2': value, ..., 'Query throughput': value, 'Median query latency'},
-         20: {'stat1': value, 'stat2': value, ..., 'Query throughput': value, 'Median query latency'},
-         50: {'stat1': value, 'stat2': value, ..., 'Query throughput': value, 'Median query latency'},
+        evaluates the mean of the statistics of multiple queries
         """
         # aggregate query statistics in lists
         mean_statistics = {}
