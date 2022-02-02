@@ -62,7 +62,7 @@ optional arguments:
                         Choose the search mode, 'file (file-path)' to use a file with a list of queries as input, 'loop' to insert queries in a loop through the terminal (empty query to end loop) and 'evaluation (file)' to evaluate retrieval engine using the relevance scores provided by input file
   --dump_file           Enable to generate file with results
   --cmd_results         Enable to show the results on terminal
-  --disable_boost       Disable boost to evaluation search_type
+  --disable_boost       Disable positional boosting of documents
   --span_size           Set the span value to use on boost 
 ```
 
@@ -118,13 +118,15 @@ python3 src/main.py --mode searcher --data index/amazon_reviews_us_Digital_Music
 
 The sample amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz from https://s3.amazonaws.com/amazon-reviews-pds/readme.html was used.
 
-For the lnc.ltc index type the results were the following:
+#### lnc.ltc index type
+
 Configuration:
 * index_type	lnc.ltc
 * size_filter	3
 * stemmer_enabled	True
 * stopwords_path	content/stopwords.txt
 * use_positions	False
+
 Statistics:
 * Number of indexed documents: 1688884
 * Number of postings: 33469012
@@ -133,13 +135,15 @@ Statistics:
 * Total index size on disk (MB): 993.258436
 * Number of temporary index segments: 34
 
-For the BM25 index type the results were the following:
+#### BM25 index type
+
 Configuration:
 * index_type	bm25
 * size_filter	3
 * stemmer_enabled	True
 * stopwords_path	content/stopwords.txt
 * use_positions	False
+
 Statistics:
 * Number of indexed documents: 1688884
 * Number of postings: 33469012
@@ -157,6 +161,121 @@ These results were produced on a machine with the following specifications:
 
 ### Querying
 
+There were improvements by using positional boosting to most query metrics, especially for lnc.ltc. The default values defined in the program were used for these results, with 0.02 as the upper limit for boosting and a max span size of 4.
+
+#### lnc.ltc without positional boosting
+TOP 10 
+Precision: 0.76
+Recall: 0.10
+F-measure: 0.18
+Average precision: 0.10
+NDCG: 0.64
+Average query throughput (queries/s): 0.43
+Median query latency (ms): 2891.84
+
+TOP 20 
+Precision: 0.66
+Recall: 0.18
+F-measure: 0.28
+Average precision: 0.16
+NDCG: 0.61
+Average query throughput (queries/s): 0.43
+Median query latency (ms): 2891.84
+
+TOP 50 
+Precision: 0.53
+Recall: 0.35
+F-measure: 0.42
+Average precision: 0.29
+NDCG: 0.58
+Average query throughput (queries/s): 0.43
+Median query latency (ms): 2891.84
+
+#### lnc.ltc with positional boosting
+TOP 10 
+Precision: 0.79
+Recall: 0.11
+F-measure: 0.19
+Average precision: 0.10
+NDCG: 0.67
+Average query throughput (queries/s): 0.33
+Median query latency (ms): 3220.43
+
+TOP 20 
+Precision: 0.67
+Recall: 0.18
+F-measure: 0.29
+Average precision: 0.17
+NDCG: 0.64
+Average query throughput (queries/s): 0.33
+Median query latency (ms): 3220.43
+
+TOP 50 
+Precision: 0.55
+Recall: 0.37
+F-measure: 0.44
+Average precision: 0.31
+NDCG: 0.61
+Average query throughput (queries/s): 0.33
+Median query latency (ms): 3220.43
+
+#### BM25 without positional boosting
+
+TOP 10 
+Precision: 0.76
+Recall: 0.10
+F-measure: 0.18
+Average precision: 0.09
+NDCG: 0.64
+Average query throughput (queries/s): 0.44
+Median query latency (ms): 2825.76
+
+TOP 20 
+Precision: 0.70
+Recall: 0.19
+F-measure: 0.30
+Average precision: 0.17
+NDCG: 0.63
+Average query throughput (queries/s): 0.44
+Median query latency (ms): 2825.76
+
+TOP 50 
+Precision: 0.54
+Recall: 0.37
+F-measure: 0.44
+Average precision: 0.30
+NDCG: 0.60
+Average query throughput (queries/s): 0.44
+Median query latency (ms): 2825.76
+
+#### BM25 with positional boosting
+
+TOP 10 
+Precision: 0.76
+Recall: 0.10
+F-measure: 0.18
+Average precision: 0.09
+NDCG: 0.65
+Average query throughput (queries/s): 0.34
+Median query latency (ms): 3077.21
+
+TOP 20 
+Precision: 0.71
+Recall: 0.19
+F-measure: 0.30
+Average precision: 0.17
+NDCG: 0.63
+Average query throughput (queries/s): 0.34
+Median query latency (ms): 3077.21
+
+TOP 50 
+Precision: 0.54
+Recall: 0.37
+F-measure: 0.43
+Average precision: 0.30
+NDCG: 0.60
+Average query throughput (queries/s): 0.34
+Median query latency (ms): 3077.21
 
 ## Authors
 
