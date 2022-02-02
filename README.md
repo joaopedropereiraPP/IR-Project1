@@ -165,117 +165,119 @@ There were improvements by using positional boosting to most query metrics, espe
 
 #### lnc.ltc without positional boosting
 TOP 10 
-Precision: 0.76
-Recall: 0.10
-F-measure: 0.18
-Average precision: 0.10
-NDCG: 0.64
-Average query throughput (queries/s): 0.43
-Median query latency (ms): 2891.84
+
+* Precision: 0.76
+* Recall: 0.10
+* F-measure: 0.18
+* Average precision: 0.10
+* NDCG: 0.64
+* Average query throughput (queries/s): 0.43
+* Median query latency (ms): 2891.84
 
 TOP 20 
-Precision: 0.66
-Recall: 0.18
-F-measure: 0.28
-Average precision: 0.16
-NDCG: 0.61
-Average query throughput (queries/s): 0.43
-Median query latency (ms): 2891.84
+
+* Precision: 0.66
+* Recall: 0.18
+* F-measure: 0.28
+* Average precision: 0.16
+* NDCG: 0.61
+* Average query throughput (queries/s): 0.43
+* Median query latency (ms): 2891.84
 
 TOP 50 
-Precision: 0.53
-Recall: 0.35
-F-measure: 0.42
-Average precision: 0.29
-NDCG: 0.58
-Average query throughput (queries/s): 0.43
-Median query latency (ms): 2891.84
+* Precision: 0.53
+* Recall: 0.35
+* F-measure: 0.42
+* Average precision: 0.29
+* NDCG: 0.58
+* Average query throughput (queries/s): 0.43
+* Median query latency (ms): 2891.84
 
 #### lnc.ltc with positional boosting
 TOP 10 
-Precision: 0.79
-Recall: 0.11
-F-measure: 0.19
-Average precision: 0.10
-NDCG: 0.67
-Average query throughput (queries/s): 0.33
-Median query latency (ms): 3220.43
+* Precision: 0.79
+* Recall: 0.11
+* F-measure: 0.19
+* Average precision: 0.10
+* NDCG: 0.67
+* Average query throughput (queries/s): 0.33
+* Median query latency (ms): 3220.43
 
 TOP 20 
-Precision: 0.67
-Recall: 0.18
-F-measure: 0.29
-Average precision: 0.17
-NDCG: 0.64
-Average query throughput (queries/s): 0.33
-Median query latency (ms): 3220.43
+* Precision: 0.67
+* Recall: 0.18
+* F-measure: 0.29
+* Average precision: 0.17
+* NDCG: 0.64
+* Average query throughput (queries/s): 0.33
+* Median query latency (ms): 3220.43
 
 TOP 50 
-Precision: 0.55
-Recall: 0.37
-F-measure: 0.44
-Average precision: 0.31
-NDCG: 0.61
-Average query throughput (queries/s): 0.33
-Median query latency (ms): 3220.43
+* Precision: 0.55
+* Recall: 0.37
+* F-measure: 0.44
+* Average precision: 0.31
+* NDCG: 0.61
+* Average query throughput (queries/s): 0.33
+* Median query latency (ms): 3220.43
 
 #### BM25 without positional boosting
 
 TOP 10 
-Precision: 0.76
-Recall: 0.10
-F-measure: 0.18
-Average precision: 0.09
-NDCG: 0.64
-Average query throughput (queries/s): 0.44
-Median query latency (ms): 2825.76
+* Precision: 0.76
+* Recall: 0.10
+* F-measure: 0.18
+* Average precision: 0.09
+* NDCG: 0.64
+* Average query throughput (queries/s): 0.44
+* Median query latency (ms): 2825.76
 
 TOP 20 
-Precision: 0.70
-Recall: 0.19
-F-measure: 0.30
-Average precision: 0.17
-NDCG: 0.63
-Average query throughput (queries/s): 0.44
-Median query latency (ms): 2825.76
+* Precision: 0.70
+* Recall: 0.19
+* F-measure: 0.30
+* Average precision: 0.17
+* NDCG: 0.63
+* Average query throughput (queries/s): 0.44
+* Median query latency (ms): 2825.76
 
 TOP 50 
-Precision: 0.54
-Recall: 0.37
-F-measure: 0.44
-Average precision: 0.30
-NDCG: 0.60
-Average query throughput (queries/s): 0.44
-Median query latency (ms): 2825.76
+* Precision: 0.54
+* Recall: 0.37
+* F-measure: 0.44
+* Average precision: 0.30
+* NDCG: 0.60
+* Average query throughput (queries/s): 0.44
+* Median query latency (ms): 2825.76
 
 #### BM25 with positional boosting
 
 TOP 10 
-Precision: 0.76
-Recall: 0.10
-F-measure: 0.18
-Average precision: 0.09
-NDCG: 0.65
-Average query throughput (queries/s): 0.34
-Median query latency (ms): 3077.21
+* Precision: 0.76
+* Recall: 0.10
+* F-measure: 0.18
+* Average precision: 0.09
+* NDCG: 0.65
+* Average query throughput (queries/s): 0.34
+* Median query latency (ms): 3077.21
 
 TOP 20 
-Precision: 0.71
-Recall: 0.19
-F-measure: 0.30
-Average precision: 0.17
-NDCG: 0.63
-Average query throughput (queries/s): 0.34
-Median query latency (ms): 3077.21
+* Precision: 0.71
+* Recall: 0.19
+* F-measure: 0.30
+* Average precision: 0.17
+* NDCG: 0.63
+* Average query throughput (queries/s): 0.34
+* Median query latency (ms): 3077.21
 
 TOP 50 
-Precision: 0.54
-Recall: 0.37
-F-measure: 0.43
-Average precision: 0.30
-NDCG: 0.60
-Average query throughput (queries/s): 0.34
-Median query latency (ms): 3077.21
+* Precision: 0.54
+* Recall: 0.37
+* F-measure: 0.43
+* Average precision: 0.30
+* NDCG: 0.60
+* Average query throughput (queries/s): 0.34
+* Median query latency (ms): 3077.21
 
 ## Authors
 
